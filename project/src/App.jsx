@@ -1,143 +1,151 @@
 // src/App.jsx
-import React, { useState } from 'react';
-import { BotMessageSquare, Video, BrainCircuit, Mic, Footprints, AlertTriangle } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import Webcam from "react-webcam";
+import { 
+  BotMessageSquare, Video, BrainCircuit, Footprints, AlertTriangle, CameraOff 
+} from 'lucide-react';
 
-// === Komponent Makietowy dla Modelu 3D (Three.js) ===
-// W przyszłości tu umieścisz Canvas Three.js
-const Placeholder3DModel = ({ onBodyPartClick }) => (
-  <div className="relative w-full h-full bg-slate-900 rounded-2xl border border-slate-700 p-6 flex flex-col items-center justify-center group overflow-hidden">
-    <Footprints size={100} className="text-blue-950 absolute scale-150 rotate-12" />
-    <img src="https://raw.githubusercontent.com/pmndrs/three-fiber/master/examples/src/resources/images/cover.jpg" alt="Model 3D" className="w-1/2 opacity-20" />
-    
-    <div className="text-center z-10">
-      <p className="text-xl font-bold text-blue-100">Interaktywny Model Anatomiczny</p>
-      <p className="text-sm text-slate-400 mt-2">[Trwają prace nad ładowaniem modelu Three.js]</p>
+// === Komponent Kamery ===
+const CameraView = ({ isActive, feedback }) => {
+  const webcamRef = useRef(null);
+  const videoConstraints = { width: 1280, height: 720, facingMode: "user" };
+
+  return (
+    <div className="relative w-full h-full bg-slate-950 rounded-2xl border-4 border-slate-700 overflow-hidden shadow-2xl flex items-center justify-center">
+      {isActive ? (
+        <>
+          <Webcam
+            audio={false}
+            ref={webcamRef}
+            className="w-full h-full object-cover scale-x-[-1] animate-in fade-in duration-700"
+            videoConstraints={videoConstraints}
+          />
+          {/* Szkielet AI Overlay (Makieta) */}
+          <div className="absolute inset-0 p-10 flex flex-col items-center justify-between pointer-events-none opacity-40">
+             <div className="w-16 h-16 border-2 border-sky-400 rounded-full bg-sky-400/10 flex items-center justify-center text-sky-300 text-[10px] uppercase font-bold tracking-widest">Głowa</div>
+             <div className="w-1 h-3/5 bg-sky-400 rounded shadow-[0_0_10px_rgba(56,189,248,0.5)]"></div>
+             <div className="flex gap-40 mt-auto mb-10">
+               <div className="w-8 h-8 border-2 border-sky-400 rounded-full bg-sky-400/20"></div>
+               <div className="w-8 h-8 border-2 border-sky-400 rounded-full bg-sky-400/20"></div>
+             </div>
+          </div>
+        </>
+      ) : (
+        <div className="flex flex-col items-center gap-4 text-slate-700">
+          <CameraOff size={64} className="opacity-20" />
+          <p className="text-sm font-mono tracking-widest uppercase opacity-40">Wybierz nogi i kliknij Start</p>
+        </div>
+      )}
+
+      {feedback && isActive && (
+        <div className="absolute top-4 right-4 left-4 bg-slate-900/95 p-4 rounded-xl border-l-4 border-amber-400 flex items-center gap-4 shadow-2xl animate-bounce z-50">
+          <AlertTriangle className="text-amber-400 h-8 w-8 shrink-0" />
+          <div>
+            <h4 className="text-amber-300 font-bold text-xs uppercase tracking-wider">Korekta AI</h4>
+            <p className="text-blue-50 font-medium text-lg leading-tight">{feedback}</p>
+          </div>
+        </div>
+      )}
     </div>
+  );
+};
 
-    {/* MVP Area: Hotspot na nogach (symulacja) */}
+// === Komponent Modelu 3D ===
+const Placeholder3DModel = ({ onBodyPartClick, activePart }) => (
+  <div className="relative w-full h-full bg-slate-900 rounded-2xl border border-slate-700 p-6 flex flex-col items-center justify-center group overflow-hidden">
+    <Footprints size={120} className="text-blue-950 absolute scale-150 rotate-12 opacity-50" />
+    <div className="text-center z-10">
+      <p className="text-xl font-black text-blue-100 uppercase tracking-widest italic leading-tight">Interaktywny<br/>Model 3D</p>
+      <p className="text-[10px] text-slate-500 mt-2 font-mono uppercase italic tracking-tighter">Skeleton week 1</p>
+    </div>
     <div 
       onClick={() => onBodyPartClick('Nogi - Przysiad')}
-      className="absolute bottom-10 left-1/2 -translate-x-1/2 w-40 h-40 border-2 border-dashed border-sky-400 bg-sky-500/10 rounded-full flex items-center justify-center cursor-pointer hover:bg-sky-500/30 transition-all hover:scale-105"
+      className={`absolute bottom-10 left-1/2 -translate-x-1/2 w-48 h-48 border-2 border-dashed rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 hover:scale-105 ${
+        activePart === 'Nogi - Przysiad' ? 'border-sky-400 bg-sky-400/20 shadow-[0_0_20px_rgba(56,189,248,0.2)]' : 'border-slate-700 hover:border-sky-400'
+      }`}
     >
-      <span className="text-sky-300 font-semibold bg-slate-900 px-2 rounded-full">[Kliknij: Nogi]</span>
+       <span className={`text-[10px] font-black px-3 py-1 rounded-full border transition-colors uppercase ${
+         activePart === 'Nogi - Przysiad' ? 'bg-sky-500 text-slate-950 border-sky-400' : 'bg-slate-900 text-sky-400 border-sky-400/30'
+       }`}>
+         {activePart === 'Nogi - Przysiad' ? 'Wybrano Nogi' : 'Kliknij: Nogi'}
+       </span>
     </div>
   </div>
 );
 
-// === Komponent Makietowy dla Kamery/MediaPipe ===
-// W przyszłości tu będzie <video> i Canvas do rysowania punktów kluczowych
-const PlaceholderCameraView = ({ feedback }) => (
-  <div className="relative w-full h-full bg-slate-950 rounded-2xl border-4 border-slate-700 overflow-hidden shadow-inner">
-    {/* Symulacja obrazu z kamery */}
-    <img 
-      src="https://images.unsplash.com/photo-1599058917412-11f81d596429?q=80&w=600&auto=format&fit=crop" 
-      alt="User doing squat" 
-      className="w-full h-full object-cover filter blur-sm grayscale"
-    />
-    
-    {/* Symulacja nałożenia "Szkieletu" AI (MediaPipe) */}
-    <div className="absolute inset-0 p-10 flex flex-col items-center justify-between">
-      {/* Klatka głowy */}
-      <div className="w-16 h-16 border-2 border-green-500 rounded-full bg-green-500/10 flex items-center justify-center text-green-300 text-xs">Głowa</div>
-      
-      {/* Kręgosłup */}
-      <div className="w-1 h-3/5 bg-green-500 rounded"></div>
-      
-      {/* Kolana */}
-      <div className="flex gap-40 mt-auto mb-10">
-        <div className="w-10 h-10 border-2 border-green-500 rounded-full bg-green-500/20 text-green-300 text-center text-xs pt-2">Kolano (L)</div>
-        <div className="w-10 h-10 border-2 border-green-500 rounded-full bg-green-500/20 text-green-300 text-center text-xs pt-2">Kolano (P)</div>
-      </div>
-    </div>
-
-    {/* Live AI Feedback Overlay - MVP KEY FEATURE */}
-    {feedback && (
-      <div className="absolute top-4 right-4 left-4 bg-slate-900/90 p-4 rounded-xl border-l-4 border-amber-400 flex items-center gap-4 animate-pulse">
-        <AlertTriangle className="text-amber-400 h-8 w-8" />
-        <div>
-          <h4 className="text-amber-300 font-bold text-sm uppercase">Korekta AI:</h4>
-          <p className="text-blue-50 font-medium text-lg">{feedback}</p>
-        </div>
-      </div>
-    )}
-  </div>
-);
-
-// === Główny Komponent Aplikacji ===
+// === Główny Komponent App ===
 function App() {
   const [selectedMuscle, setSelectedMuscle] = useState(null);
   const [trainingActive, setTrainingActive] = useState(false);
-  
-  // Symulacja feedbacku AI (tylko do demonstracji szkieletu UI)
-  const simulatedFeedback = selectedMuscle === 'Nogi - Przysiad' && trainingActive 
-    ? "Schodź wolniej i wypchnij kolana do zewnątrz!" 
-    : null;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-blue-100 font-sans p-6 md:p-10 flex flex-col gap-6">
+    <div className="min-h-screen bg-slate-950 text-blue-100 p-4 md:p-8 flex flex-col gap-6">
       
-      {/* 1. Header (Górny Pasek) */}
-      <header className="flex items-center justify-between p-5 bg-slate-900 rounded-2xl shadow-lg border border-slate-800">
+      {/* Header */}
+      <header className="flex items-center justify-between p-5 bg-slate-900 rounded-2xl shadow-xl border border-slate-800">
         <div className="flex items-center gap-4">
-          <BrainCircuit className="h-9 w-9 text-blue-400" />
-          <h1 className="text-3xl font-extrabold text-blue-50 tracking-tight">
-            Form<span className="text-sky-400">Check</span> <span className="text-xs font-mono text-slate-500">AI</span>
+          <BrainCircuit className="h-10 w-10 text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.4)]" />
+          <h1 className="text-2xl md:text-3xl font-black tracking-tighter uppercase italic">
+            Form<span className="text-sky-400">Check</span><span className="text-slate-600 font-light ml-1 text-sm italic">AI</span>
           </h1>
         </div>
-        <div className="flex items-center gap-3">
-          <div className={`h-3 w-3 rounded-full ${trainingActive ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
-          <span className="font-medium text-slate-300">{trainingActive ? 'W TRAKCIE ANALIZY...' : 'GOTOWY'}</span>
-          <BotMessageSquare className="h-6 w-6 text-slate-500 ml-4 hover:text-blue-400 cursor-pointer" />
+        
+        <div className="flex items-center gap-3 bg-slate-950 px-4 py-2 rounded-full border border-slate-800">
+          <div className={`h-2 w-2 rounded-full ${trainingActive ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            {trainingActive ? 'Analiza w toku' : 'System gotowy'}
+          </span>
         </div>
       </header>
 
-      {/* 2. Main Layout - Grid */}
-      <main className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Main Grid */}
+      <main className="flex-grow grid grid-cols-1 lg:grid-cols-2 gap-8">
         
-        {/* --- LEWY PANEL: Three.js Model / Wybór --- */}
+        {/* Lewy Panel: Sterowanie i Model */}
         <section className="flex flex-col gap-6">
-          <div className="flex-grow">
-            <Placeholder3DModel onBodyPartClick={(part) => setSelectedMuscle(part)} />
+          <div className="flex-grow min-h-[400px]">
+            <Placeholder3DModel onBodyPartClick={setSelectedMuscle} activePart={selectedMuscle} />
           </div>
 
-          {/* Panel Sterowania MVP */}
           {selectedMuscle && (
-            <div className="bg-slate-900 p-6 rounded-2xl border border-blue-800 shadow-xl flex flex-col sm:flex-row gap-4 justify-between items-center transition-all duration-300 ease-in-out">
-              <div>
-                <span className="text-sm text-slate-500">Wybrany cel:</span>
-                <p className="text-2xl font-bold text-sky-300">{selectedMuscle}</p>
+            <div className="bg-slate-900 p-8 rounded-3xl border border-sky-900/40 shadow-2xl flex flex-col sm:flex-row justify-between items-center gap-6 animate-in slide-in-from-bottom-6 duration-500">
+              <div className="text-center sm:text-left">
+                <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Trening</span>
+                <p className="text-3xl font-black text-sky-300 italic uppercase leading-none">{selectedMuscle}</p>
               </div>
               <button 
                 onClick={() => setTrainingActive(!trainingActive)}
-                className={`px-8 py-3 rounded-full text-lg font-bold flex gap-3 transition-colors ${trainingActive ? 'bg-red-700 hover:bg-red-800' : 'bg-blue-600 hover:bg-blue-500'}`}
+                className={`w-full sm:w-auto px-12 py-5 rounded-2xl font-black uppercase tracking-widest transition-all duration-300 shadow-xl ${
+                  trainingActive 
+                  ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-900/20' 
+                  : 'bg-sky-500 hover:bg-sky-400 text-slate-950'
+                }`}
               >
-                <Video />
-                {trainingActive ? 'Zakończ Trening' : 'Rozpocznij Analizę'}
+                {trainingActive ? 'Zakończ' : 'Rozpocznij'}
               </button>
             </div>
           )}
         </section>
 
-        {/* --- PRAWY PANEL: MediaPipe / Camera Feed --- */}
+        {/* Prawy Panel: Kamera */}
         <section className="flex flex-col gap-6">
-          <div className="flex-grow">
-            <PlaceholderCameraView feedback={simulatedFeedback} />
+          <div className="flex-grow min-h-[400px]">
+            <CameraView 
+              isActive={trainingActive} 
+              feedback={trainingActive ? "Utrzymuj proste plecy!" : null} 
+            />
           </div>
-
-          {/* Panel Wskazówek/Głosowy MVP */}
-          <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 text-slate-400">
-               <Mic className='h-5 w-5' />
-               <p className='text-sm'>Status komend głosowych: <span className='text-green-400 font-medium'>Nasłuchiwanie</span></p>
-            </div>
-            <p className="text-xs text-slate-600 font-mono">[Tutaj będzie historia komunikatów głosowych]</p>
+          
+          <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-center">
+            <p className="text-[10px] text-slate-600 font-mono tracking-widest uppercase">
+              Status: <span className="text-sky-500">Podgląd wizyjny aktywny</span>
+            </p>
           </div>
         </section>
       </main>
 
-      {/* 3. Footer / Raport po treningu (ukryty do czasu MVP 4 tydz) */}
-      <footer className="text-center text-sm text-slate-700 mt-4 border-t border-slate-900 pt-4">
-        FormCheck AI MVP v0.1 | Projekt: 5 Osob | Tydzień 1 Skeleton
+      <footer className="text-center text-[10px] text-slate-800 font-mono tracking-[0.4em] uppercase py-4 border-t border-slate-900/50">
+        FormCheck AI | Sprint 1 Prototype | Build 0426
       </footer>
     </div>
   );
