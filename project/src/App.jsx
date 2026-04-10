@@ -1,14 +1,86 @@
-// src/App.jsx
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Webcam from "react-webcam";
 import { 
   BotMessageSquare, Video, BrainCircuit, Footprints, AlertTriangle, CameraOff 
 } from 'lucide-react';
 
-// === Komponent Kamery ===
+// === Komponent Kamery z Analizą MediaPipe ===
 const CameraView = ({ isActive, feedback }) => {
   const webcamRef = useRef(null);
-  const videoConstraints = { width: 1280, height: 720, facingMode: "user" };
+  const canvasRef = useRef(null);
+  const cameraRef = useRef(null);
+
+  const onResults = (results) => {
+    if (!canvasRef.current || !webcamRef.current?.video) return;
+
+    const canvasCtx = canvasRef.current.getContext("2d");
+    const videoWidth = webcamRef.current.video.videoWidth;
+    const videoHeight = webcamRef.current.video.videoHeight;
+
+    canvasRef.current.width = videoWidth;
+    canvasRef.current.height = videoHeight;
+
+    canvasCtx.save();
+    canvasCtx.clearRect(0, 0, videoWidth, videoHeight);
+    canvasCtx.drawImage(results.image, 0, 0, videoWidth, videoHeight);
+
+    if (results.poseLandmarks) {
+      // @mediapipe/drawing_utils jest ładowane globalnie z CDN
+      window.drawConnectors(canvasCtx, results.poseLandmarks, window.POSE_CONNECTIONS, {
+        color: "#38bdf8",
+        lineWidth: 4,
+      });
+      window.drawLandmarks(canvasCtx, results.poseLandmarks, {
+        color: "#ffffff",
+        fillColor: "#0ea5e9",
+        lineWidth: 2,
+        radius: 4,
+      });
+    }
+    canvasCtx.restore();
+  };
+
+  useEffect(() => {
+    let pose = null;
+
+    const initPose = async () => {
+      if (isActive) {
+        // Tworzymy instancję Pose korzystając z globalnych obiektów załadowanych w index.html
+        pose = new window.Pose({
+          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
+        });
+
+        pose.setOptions({
+          modelComplexity: 1,
+          smoothLandmarks: true,
+          minDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5,
+        });
+
+        pose.onResults(onResults);
+
+        if (webcamRef.current?.video) {
+          cameraRef.current = new window.Camera(webcamRef.current.video, {
+            onFrame: async () => {
+              if (webcamRef.current?.video) {
+                await pose.send({ image: webcamRef.current.video });
+              }
+            },
+            width: 1280,
+            height: 720,
+          });
+          cameraRef.current.start();
+        }
+      }
+    };
+
+    initPose();
+
+    return () => {
+      if (cameraRef.current) cameraRef.current.stop();
+      if (pose) pose.close();
+    };
+  }, [isActive]);
 
   return (
     <div className="relative w-full h-full bg-slate-950 rounded-2xl border-4 border-slate-700 overflow-hidden shadow-2xl flex items-center justify-center">
@@ -17,10 +89,13 @@ const CameraView = ({ isActive, feedback }) => {
           <Webcam
             audio={false}
             ref={webcamRef}
-            className="w-full h-full object-cover scale-x-[-1] animate-in fade-in duration-700"
-            videoConstraints={videoConstraints}
+            className="hidden"
+            videoConstraints={{ facingMode: "user" }}
           />
-          {/* USUNIĘTO: Stare kółka głowy i nóg. W przyszłym tygodniu tu będzie Canvas MediaPipe. */}
+          <canvas
+            ref={canvasRef}
+            className="w-full h-full object-cover scale-x-[-1] animate-in fade-in duration-700"
+          />
         </>
       ) : (
         <div className="flex flex-col items-center gap-4 text-slate-700">
@@ -42,7 +117,7 @@ const CameraView = ({ isActive, feedback }) => {
   );
 };
 
-// === Komponent Modelu 3D ===
+// === Komponent Modelu 3D (Placeholder) ===
 const Placeholder3DModel = ({ onBodyPartClick, activePart }) => (
   <div className="relative w-full h-full bg-slate-900 rounded-2xl border border-slate-700 p-6 flex flex-col items-center justify-center group overflow-hidden">
     <Footprints size={120} className="text-blue-950 absolute scale-150 rotate-12 opacity-50" />
@@ -56,24 +131,22 @@ const Placeholder3DModel = ({ onBodyPartClick, activePart }) => (
         activePart === 'Nogi - Przysiad' ? 'border-sky-400 bg-sky-400/20 shadow-[0_0_20px_rgba(56,189,248,0.2)]' : 'border-slate-700 hover:border-sky-400'
       }`}
     >
-       <span className={`text-[10px] font-black px-3 py-1 rounded-full border transition-colors uppercase ${
-         activePart === 'Nogi - Przysiad' ? 'bg-sky-500 text-slate-950 border-sky-400' : 'bg-slate-900 text-sky-400 border-sky-400/30'
-       }`}>
-         {activePart === 'Nogi - Przysiad' ? 'Wybrano Nogi' : 'Kliknij: Nogi'}
-       </span>
+        <span className={`text-[10px] font-black px-3 py-1 rounded-full border transition-colors uppercase ${
+          activePart === 'Nogi - Przysiad' ? 'bg-sky-500 text-slate-950 border-sky-400' : 'bg-slate-900 text-sky-400 border-sky-400/30'
+        }`}>
+          {activePart === 'Nogi - Przysiad' ? 'Wybrano Nogi' : 'Kliknij: Nogi'}
+        </span>
     </div>
   </div>
 );
 
 // === Główny Komponent App ===
-function App() {
+export default function App() {
   const [selectedMuscle, setSelectedMuscle] = useState(null);
   const [trainingActive, setTrainingActive] = useState(false);
 
   return (
     <div className="min-h-screen bg-slate-950 text-blue-100 p-4 md:p-8 flex flex-col gap-6 selection:bg-sky-500/20">
-      
-      {/* Header */}
       <header className="flex items-center justify-between p-5 bg-slate-900 rounded-2xl shadow-xl border border-slate-800">
         <div className="flex items-center gap-4">
           <BrainCircuit className="h-10 w-10 text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.4)]" />
@@ -81,7 +154,6 @@ function App() {
             Form<span className="text-sky-400">Check</span><span className="text-slate-600 font-light ml-1 text-sm italic">AI</span>
           </h1>
         </div>
-        
         <div className="flex items-center gap-3 bg-slate-950 px-4 py-2 rounded-full border border-slate-800">
           <div className={`h-2 w-2 rounded-full ${trainingActive ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -90,15 +162,11 @@ function App() {
         </div>
       </header>
 
-      {/* Main Grid */}
       <main className="flex-grow grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
-        
-        {/* Lewy Panel: Sterowanie i Model */}
         <section className="flex flex-col gap-6">
           <div className="flex-grow min-h-[400px]">
             <Placeholder3DModel onBodyPartClick={setSelectedMuscle} activePart={selectedMuscle} />
           </div>
-
           {selectedMuscle && (
             <div className="bg-slate-900 p-8 rounded-3xl border border-sky-900/40 shadow-2xl flex flex-col sm:flex-row justify-between items-center gap-6 animate-in slide-in-from-bottom-6 duration-500">
               <div className="text-center sm:text-left">
@@ -119,28 +187,20 @@ function App() {
           )}
         </section>
 
-        {/* Prawy Panel: Kamera */}
         <section className="flex flex-col gap-6">
           <div className="flex-grow min-h-[400px]">
             <CameraView 
               isActive={trainingActive} 
-              feedback={trainingActive ? "Utrzymuj proste plecy!" : null} 
+              feedback={trainingActive ? "System kalibruje szkielet..." : null} 
             />
           </div>
-          
           <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-center shadow-lg">
             <p className="text-[10px] text-slate-600 font-mono tracking-widest uppercase">
-              Status: <span className="text-sky-500">Podgląd wizyjny aktywny</span>
+              Status: <span className="text-sky-500">{trainingActive ? 'Analiza punktów kluczowych' : 'Podgląd wizyjny aktywny'}</span>
             </p>
           </div>
         </section>
       </main>
-
-      <footer className="text-center text-[10px] text-slate-800 font-mono tracking-[0.4em] uppercase py-4 border-t border-slate-900/50 relative z-0">
-        FormCheck AI | Sprint 1 Prototype | Build 0426
-      </footer>
     </div>
   );
 }
-
-export default App;
