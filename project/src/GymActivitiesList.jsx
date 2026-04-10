@@ -61,40 +61,47 @@ const GymActivitiesList = ({ onSelectActivity }) => {
         {filteredActivities.map((activity) => (
           <div 
             key={activity.id}
-            onClick={() => onSelectActivity?.(activity.name)}
-            className="group relative bg-slate-900 border border-slate-800 p-5 rounded-2xl hover:border-sky-500/50 transition-all cursor-pointer overflow-hidden"
+            onClick={() => onSelectActivity(activity)}
+            className="group relative bg-slate-900 border border-slate-800 p-4 rounded-2xl hover:border-sky-500/50 transition-all cursor-pointer overflow-hidden flex flex-col"
           >
-            {/* Background Glow Effect */}
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-sky-500/5 blur-3xl group-hover:bg-sky-500/10 transition-colors" />
-            
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 group-hover:scale-110 transition-transform">
-                {activity.icon}
+            {/* 1. IKONKA I ID - mniejszy padding px-2 */}
+            <div className="flex justify-between items-start mb-4 px-2">
+              <div className="p-2.5 bg-slate-950 rounded-lg border border-slate-800 group-hover:scale-110 transition-transform">
+                {React.cloneElement(activity.icon, { size: 20 })}
               </div>
-              <span className="text-[9px] font-mono text-slate-600 bg-slate-950 px-2 py-1 rounded border border-slate-800">
+              <span className="text-[8px] font-mono text-slate-600 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
                 ID: 00{activity.id}
               </span>
             </div>
 
-            <div>
-              <h3 className="text-xl font-black italic uppercase text-blue-50 leading-tight">
+            {/* 2. TYTUŁ I STATYSTYKI - px-2 */}
+            <div className="mb-3 px-2">
+              <h3 className="text-xl font-black italic uppercase text-blue-50 leading-tight tracking-tight">
                 {activity.name}
               </h3>
-              <div className="flex gap-3 mt-3">
+              
+              <div className="flex gap-3 mt-2">
                 <div className="flex items-center gap-1">
-                  <Trophy size={12} className="text-slate-600" />
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">{activity.intensity}</span>
+                  <Trophy size={10} className="text-sky-500" />
+                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+                    {activity.intensity}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Timer size={12} className="text-slate-600" />
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">{activity.time}</span>
+                  <Timer size={10} className="text-sky-500" />
+                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+                    {activity.time}
+                  </span>
                 </div>
               </div>
             </div>
 
-            <div className="mt-6 flex items-center justify-between border-t border-slate-800 pt-4">
-              <span className="text-[10px] font-black text-sky-400 uppercase tracking-widest">{activity.category}</span>
-              <ChevronRight className="text-slate-700 group-hover:text-sky-400 group-hover:translate-x-1 transition-all" />
+            {/* 3. DOLNA SEKCJA - px-2 i mniejszy pt */}
+            <div className="mt-auto flex items-center justify-between border-t border-slate-800/50 pt-3 px-2">
+              <span className="text-[10px] font-black text-sky-400 uppercase tracking-[0.2em]">
+                {activity.category}
+              </span>
+              <ChevronRight size={14} className="text-slate-700 group-hover:text-sky-400 transition-all" />
             </div>
           </div>
         ))}
