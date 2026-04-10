@@ -1,13 +1,21 @@
 import React, { useState, useRef } from 'react';
 import Webcam from "react-webcam";
 import { 
-  BotMessageSquare, Video, BrainCircuit, Footprints, AlertTriangle, CameraOff 
+  BotMessageSquare, Video, BrainCircuit, Footprints, AlertTriangle, 
+  CameraOff, LayoutGrid, Activity as ActivityIcon 
 } from 'lucide-react';
 
+<<<<<<< HEAD
 // IMPORT TWOJEGO KOMPONENTU
 import FeedbackPage from './FeedbackPage'; 
 
 // === Komponent Kamery ===
+=======
+// Importujemy Twój nowy komponent
+import GymActivitiesList from './GymActivitiesList';
+
+// === Komponent Kamery (bez zmian) ===
+>>>>>>> origin/main
 const CameraView = ({ isActive, feedback }) => {
   const webcamRef = useRef(null);
   const videoConstraints = { width: 1280, height: 720, facingMode: "user" };
@@ -15,16 +23,27 @@ const CameraView = ({ isActive, feedback }) => {
   return (
     <div className="relative w-full h-full bg-slate-950 rounded-2xl border-4 border-slate-700 overflow-hidden shadow-2xl flex items-center justify-center">
       {isActive ? (
+<<<<<<< HEAD
         <Webcam
           audio={false}
           ref={webcamRef}
           className="w-full h-full object-cover scale-x-[-1] animate-in fade-in duration-700"
           videoConstraints={videoConstraints}
         />
+=======
+        <>
+          <Webcam
+            audio={false}
+            ref={webcamRef}
+            className="w-full h-full object-cover scale-x-[-1] animate-in fade-in duration-700"
+            videoConstraints={videoConstraints}
+          />
+        </>
+>>>>>>> origin/main
       ) : (
         <div className="flex flex-col items-center gap-4 text-slate-700">
           <CameraOff size={64} className="opacity-20" />
-          <p className="text-sm font-mono tracking-widest uppercase opacity-40">Wybierz nogi i kliknij Start</p>
+          <p className="text-sm font-mono tracking-widest uppercase opacity-40">Kamera nieaktywna</p>
         </div>
       )}
 
@@ -41,7 +60,7 @@ const CameraView = ({ isActive, feedback }) => {
   );
 };
 
-// === Komponent Modelu 3D ===
+// === Komponent Modelu 3D (bez zmian) ===
 const Placeholder3DModel = ({ onBodyPartClick, activePart }) => (
   <div className="relative w-full h-full bg-slate-900 rounded-2xl border border-slate-700 p-6 flex flex-col items-center justify-center group overflow-hidden">
     <Footprints size={120} className="text-blue-950 absolute scale-150 rotate-12 opacity-50" />
@@ -64,10 +83,10 @@ const Placeholder3DModel = ({ onBodyPartClick, activePart }) => (
   </div>
 );
 
-// === Główny Komponent App ===
 function App() {
   const [selectedMuscle, setSelectedMuscle] = useState(null);
   const [trainingActive, setTrainingActive] = useState(false);
+<<<<<<< HEAD
   
   // NAWIGACJA: 'training' lub 'feedback'
   const [view, setView] = useState('training');
@@ -95,12 +114,22 @@ function App() {
               }}
            />;
   }
+=======
+  // NOWY STAN: decyduje którą stronę widzimy ('model' lub 'list')
+  const [currentView, setCurrentView] = useState('model');
+
+  // Funkcja pomocnicza do zmiany ćwiczenia z listy
+  const handleActivitySelect = (name) => {
+    setSelectedMuscle(name);
+    setCurrentView('model'); // Po wybraniu wracamy do widoku modelu/kamery
+  };
+>>>>>>> origin/main
 
   return (
     <div className="min-h-screen bg-slate-950 text-blue-100 p-4 md:p-8 flex flex-col gap-6 selection:bg-sky-500/20">
       
-      {/* Header */}
-      <header className="flex items-center justify-between p-5 bg-slate-900 rounded-2xl shadow-xl border border-slate-800">
+      {/* Header z Nawigacją */}
+      <header className="flex flex-col md:flex-row items-center justify-between p-5 bg-slate-900 rounded-2xl shadow-xl border border-slate-800 gap-4">
         <div className="flex items-center gap-4">
           <BrainCircuit className="h-10 w-10 text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.4)]" />
           <h1 className="text-2xl md:text-3xl font-black tracking-tighter uppercase italic text-blue-50">
@@ -108,6 +137,26 @@ function App() {
           </h1>
         </div>
         
+        {/* PRZYCISKI NAWIGACJI */}
+        <nav className="flex gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800">
+          <button 
+            onClick={() => setCurrentView('model')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+              currentView === 'model' ? 'bg-sky-500 text-slate-950' : 'text-slate-500 hover:text-sky-400'
+            }`}
+          >
+            <ActivityIcon size={14} /> Trening
+          </button>
+          <button 
+            onClick={() => setCurrentView('list')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+              currentView === 'list' ? 'bg-sky-500 text-slate-950' : 'text-slate-500 hover:text-sky-400'
+            }`}
+          >
+            <LayoutGrid size={14} /> Biblioteka
+          </button>
+        </nav>
+
         <div className="flex items-center gap-3 bg-slate-950 px-4 py-2 rounded-full border border-slate-800">
           <div className={`h-2 w-2 rounded-full ${trainingActive ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -118,12 +167,21 @@ function App() {
 
       {/* Main Grid */}
       <main className="flex-grow grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
+<<<<<<< HEAD
+=======
+        
+        {/* Lewy Panel: Sterowanie (zależne od currentView) */}
+>>>>>>> origin/main
         <section className="flex flex-col gap-6">
           <div className="flex-grow min-h-[400px]">
-            <Placeholder3DModel onBodyPartClick={setSelectedMuscle} activePart={selectedMuscle} />
+            {currentView === 'model' ? (
+              <Placeholder3DModel onBodyPartClick={setSelectedMuscle} activePart={selectedMuscle} />
+            ) : (
+              <GymActivitiesList onSelectActivity={handleActivitySelect} />
+            )}
           </div>
 
-          {selectedMuscle && (
+          {selectedMuscle && currentView === 'model' && (
             <div className="bg-slate-900 p-8 rounded-3xl border border-sky-900/40 shadow-2xl flex flex-col sm:flex-row justify-between items-center gap-6 animate-in slide-in-from-bottom-6 duration-500">
               <div className="text-center sm:text-left">
                 <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Trening</span>
@@ -153,7 +211,7 @@ function App() {
           
           <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-center shadow-lg">
             <p className="text-[10px] text-slate-600 font-mono tracking-widest uppercase">
-              Status: <span className="text-sky-500">Podgląd wizyjny aktywny</span>
+              Status: <span className="text-sky-500">{trainingActive ? 'Analiza ruchu AI' : 'Oczekiwanie na start'}</span>
             </p>
           </div>
         </section>
