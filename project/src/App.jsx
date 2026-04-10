@@ -5,10 +5,17 @@ import {
   CameraOff, LayoutGrid, Activity as ActivityIcon 
 } from 'lucide-react';
 
+<<<<<<< HEAD
+// IMPORT TWOJEGO KOMPONENTU
+import FeedbackPage from './FeedbackPage'; 
+
+// === Komponent Kamery ===
+=======
 // Importujemy Twój nowy komponent
 import GymActivitiesList from './GymActivitiesList';
 
 // === Komponent Kamery (bez zmian) ===
+>>>>>>> origin/main
 const CameraView = ({ isActive, feedback }) => {
   const webcamRef = useRef(null);
   const videoConstraints = { width: 1280, height: 720, facingMode: "user" };
@@ -16,6 +23,14 @@ const CameraView = ({ isActive, feedback }) => {
   return (
     <div className="relative w-full h-full bg-slate-950 rounded-2xl border-4 border-slate-700 overflow-hidden shadow-2xl flex items-center justify-center">
       {isActive ? (
+<<<<<<< HEAD
+        <Webcam
+          audio={false}
+          ref={webcamRef}
+          className="w-full h-full object-cover scale-x-[-1] animate-in fade-in duration-700"
+          videoConstraints={videoConstraints}
+        />
+=======
         <>
           <Webcam
             audio={false}
@@ -24,6 +39,7 @@ const CameraView = ({ isActive, feedback }) => {
             videoConstraints={videoConstraints}
           />
         </>
+>>>>>>> origin/main
       ) : (
         <div className="flex flex-col items-center gap-4 text-slate-700">
           <CameraOff size={64} className="opacity-20" />
@@ -70,6 +86,35 @@ const Placeholder3DModel = ({ onBodyPartClick, activePart }) => (
 function App() {
   const [selectedMuscle, setSelectedMuscle] = useState(null);
   const [trainingActive, setTrainingActive] = useState(false);
+<<<<<<< HEAD
+  
+  // NAWIGACJA: 'training' lub 'feedback'
+  const [view, setView] = useState('training');
+
+  const handleFinish = () => {
+    setTrainingActive(false);
+    setView('feedback');
+  };
+
+  // Renderowanie warunkowe
+  if (view === 'feedback') {
+    return <FeedbackPage 
+              onBack={() => setView('training')} 
+              workoutData={{
+                score: 88,
+                muscle: selectedMuscle,
+                notes: "Dobra sesja! Pamiętaj o prostej linii kręgosłupa.",
+                repsCompleted: 15,
+                improvements: ["Kontrola tempa", "Głębokość przysiadu"],
+                warnings: ["Lekkie pochylenie do przodu"],
+                recommendations: [
+                    { name: "Wykroki bułgarskie", sets: "3 serie x 10 powt." },
+                    { name: "Rozciąganie bioder", sets: "5 minut po treningu" }
+                ]
+              }}
+           />;
+  }
+=======
   // NOWY STAN: decyduje którą stronę widzimy ('model' lub 'list')
   const [currentView, setCurrentView] = useState('model');
 
@@ -78,6 +123,7 @@ function App() {
     setSelectedMuscle(name);
     setCurrentView('model'); // Po wybraniu wracamy do widoku modelu/kamery
   };
+>>>>>>> origin/main
 
   return (
     <div className="min-h-screen bg-slate-950 text-blue-100 p-4 md:p-8 flex flex-col gap-6 selection:bg-sky-500/20">
@@ -121,8 +167,11 @@ function App() {
 
       {/* Main Grid */}
       <main className="flex-grow grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
+<<<<<<< HEAD
+=======
         
         {/* Lewy Panel: Sterowanie (zależne od currentView) */}
+>>>>>>> origin/main
         <section className="flex flex-col gap-6">
           <div className="flex-grow min-h-[400px]">
             {currentView === 'model' ? (
@@ -139,7 +188,7 @@ function App() {
                 <p className="text-3xl font-black text-sky-300 italic uppercase leading-none mt-1">{selectedMuscle}</p>
               </div>
               <button 
-                onClick={() => setTrainingActive(!trainingActive)}
+                onClick={trainingActive ? handleFinish : () => setTrainingActive(true)}
                 className={`w-full sm:w-auto px-12 py-5 rounded-2xl font-black uppercase tracking-widest transition-all duration-300 shadow-xl ${
                   trainingActive 
                   ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-900/20' 
@@ -152,7 +201,6 @@ function App() {
           )}
         </section>
 
-        {/* Prawy Panel: Kamera */}
         <section className="flex flex-col gap-6">
           <div className="flex-grow min-h-[400px]">
             <CameraView 
