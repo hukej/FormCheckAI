@@ -1,8 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Webcam from "react-webcam";
 import { 
-  BotMessageSquare, Video, BrainCircuit, Footprints, AlertTriangle, CameraOff 
+  BotMessageSquare, Video, BrainCircuit, Footprints, AlertTriangle, 
+  CameraOff, LayoutGrid, Activity as ActivityIcon 
 } from 'lucide-react';
+
+// Importujemy Twój nowy komponent
+import GymActivitiesList from './GymActivitiesList';
 
 // === Komponent Kamery z Analizą MediaPipe ===
 const CameraView = ({ isActive, feedback }) => {
@@ -25,17 +29,20 @@ const CameraView = ({ isActive, feedback }) => {
     canvasCtx.drawImage(results.image, 0, 0, videoWidth, videoHeight);
 
     if (results.poseLandmarks) {
-      // @mediapipe/drawing_utils jest ładowane globalnie z CDN
-      window.drawConnectors(canvasCtx, results.poseLandmarks, window.POSE_CONNECTIONS, {
-        color: "#38bdf8",
-        lineWidth: 4,
-      });
-      window.drawLandmarks(canvasCtx, results.poseLandmarks, {
-        color: "#ffffff",
-        fillColor: "#0ea5e9",
-        lineWidth: 2,
-        radius: 4,
-      });
+      if (window.drawConnectors && window.POSE_CONNECTIONS) {
+        window.drawConnectors(canvasCtx, results.poseLandmarks, window.POSE_CONNECTIONS, {
+          color: "#38bdf8",
+          lineWidth: 4,
+        });
+      }
+      if (window.drawLandmarks) {
+        window.drawLandmarks(canvasCtx, results.poseLandmarks, {
+          color: "#ffffff",
+          fillColor: "#0ea5e9",
+          lineWidth: 2,
+          radius: 4,
+        });
+      }
     }
     canvasCtx.restore();
   };
@@ -44,8 +51,7 @@ const CameraView = ({ isActive, feedback }) => {
     let pose = null;
 
     const initPose = async () => {
-      if (isActive) {
-        // Tworzymy instancję Pose korzystając z globalnych obiektów załadowanych w index.html
+      if (isActive && window.Pose) {
         pose = new window.Pose({
           locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
         });
@@ -59,7 +65,7 @@ const CameraView = ({ isActive, feedback }) => {
 
         pose.onResults(onResults);
 
-        if (webcamRef.current?.video) {
+        if (webcamRef.current?.video && window.Camera) {
           cameraRef.current = new window.Camera(webcamRef.current.video, {
             onFrame: async () => {
               if (webcamRef.current?.video) {
@@ -100,7 +106,7 @@ const CameraView = ({ isActive, feedback }) => {
       ) : (
         <div className="flex flex-col items-center gap-4 text-slate-700">
           <CameraOff size={64} className="opacity-20" />
-          <p className="text-sm font-mono tracking-widest uppercase opacity-40">Wybierz nogi i kliknij Start</p>
+          <p className="text-sm font-mono tracking-widest uppercase opacity-40">Kamera nieaktywna</p>
         </div>
       )}
 
@@ -144,16 +150,44 @@ const Placeholder3DModel = ({ onBodyPartClick, activePart }) => (
 export default function App() {
   const [selectedMuscle, setSelectedMuscle] = useState(null);
   const [trainingActive, setTrainingActive] = useState(false);
+  const [currentView, setCurrentView] = useState('model');
+
+  const handleActivitySelect = (name) => {
+    setSelectedMuscle(name);
+    setCurrentView('model');
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-blue-100 p-4 md:p-8 flex flex-col gap-6 selection:bg-sky-500/20">
-      <header className="flex items-center justify-between p-5 bg-slate-900 rounded-2xl shadow-xl border border-slate-800">
+      
+      {/* Header z Nawigacją */}
+      <header className="flex flex-col md:flex-row items-center justify-between p-5 bg-slate-900 rounded-2xl shadow-xl border border-slate-800 gap-4">
         <div className="flex items-center gap-4">
           <BrainCircuit className="h-10 w-10 text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.4)]" />
           <h1 className="text-2xl md:text-3xl font-black tracking-tighter uppercase italic text-blue-50">
             Form<span className="text-sky-400">Check</span><span className="text-slate-600 font-light ml-1 text-sm italic">AI</span>
           </h1>
         </div>
+        
+        <nav className="flex gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800">
+          <button 
+            onClick={() => setCurrentView('model')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+              currentView === 'model' ? 'bg-sky-500 text-slate-950' : 'text-slate-500 hover:text-sky-400'
+            }`}
+          >
+            <ActivityIcon size={14} /> Trening
+          </button>
+          <button 
+            onClick={() => setCurrentView('list')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+              currentView === 'list' ? 'bg-sky-500 text-slate-950' : 'text-slate-500 hover:text-sky-400'
+            }`}
+          >
+            <LayoutGrid size={14} /> Biblioteka
+          </button>
+        </nav>
+
         <div className="flex items-center gap-3 bg-slate-950 px-4 py-2 rounded-full border border-slate-800">
           <div className={`h-2 w-2 rounded-full ${trainingActive ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -165,12 +199,17 @@ export default function App() {
       <main className="flex-grow grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
         <section className="flex flex-col gap-6">
           <div className="flex-grow min-h-[400px]">
-            <Placeholder3DModel onBodyPartClick={setSelectedMuscle} activePart={selectedMuscle} />
+            {currentView === 'model' ? (
+              <Placeholder3DModel onBodyPartClick={setSelectedMuscle} activePart={selectedMuscle} />
+            ) : (
+              <GymActivitiesList onSelectActivity={handleActivitySelect} />
+            )}
           </div>
-          {selectedMuscle && (
+          
+          {selectedMuscle && currentView === 'model' && (
             <div className="bg-slate-900 p-8 rounded-3xl border border-sky-900/40 shadow-2xl flex flex-col sm:flex-row justify-between items-center gap-6 animate-in slide-in-from-bottom-6 duration-500">
               <div className="text-center sm:text-left">
-                <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Trening</span>
+                <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Wybrano:</span>
                 <p className="text-3xl font-black text-sky-300 italic uppercase leading-none mt-1">{selectedMuscle}</p>
               </div>
               <button 
@@ -196,11 +235,15 @@ export default function App() {
           </div>
           <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-center shadow-lg">
             <p className="text-[10px] text-slate-600 font-mono tracking-widest uppercase">
-              Status: <span className="text-sky-500">{trainingActive ? 'Analiza punktów kluczowych' : 'Podgląd wizyjny aktywny'}</span>
+              Status: <span className="text-sky-500">{trainingActive ? 'Analiza ruchu AI' : 'Oczekiwanie na start'}</span>
             </p>
           </div>
         </section>
       </main>
+
+      <footer className="text-center text-[10px] text-slate-800 font-mono tracking-[0.4em] uppercase py-4 border-t border-slate-900/50 relative z-0">
+        FormCheck AI | Sprint 1 Prototype | Build 0426
+      </footer>
     </div>
   );
 }
