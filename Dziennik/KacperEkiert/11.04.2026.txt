@@ -1,0 +1,1 @@
+Jest dodany szkielet funkcjonalnosci ai do analizy przysiadu. Dodane rozne eastereggi. Dodany jakis ML ale nie testowane to jest totalna prowizorka ai nie analizowalem tego jeszcze.
