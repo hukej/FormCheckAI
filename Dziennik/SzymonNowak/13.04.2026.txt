@@ -1,0 +1,1 @@
+Dzisiejszego dnia podczas praktyk zajmowałem się tworzeniem interfejsu użytkownika (UI). Pracowałem nad wyglądem oraz układem elementów w aplikacji, dbając o ich czytelność i intuicyjność. Skupiłem się na dostosowaniu komponentów, poprawie estetyki oraz zapewnieniu lepszej użyteczności dla użytkownika.
