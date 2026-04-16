@@ -25,6 +25,7 @@ const angleDeg = (a, b, c) => {
   return (Math.acos(clamp(dot / (magAB * magCB), -1, 1)) * 180) / Math.PI;
 };
 
+//kamerkawidoczek
 const CameraView = ({ isActive, selectedExercise, onWorkoutFinish }) => {
   const webcamRef = useRef(null);
   const canvasRef = useRef(null);
