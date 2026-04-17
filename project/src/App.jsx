@@ -39,6 +39,49 @@ const CameraView = ({ isActive, selectedExercise, onWorkoutFinish }) => {
   const [calibProgress, setCalibProgress] = useState(0);
   const [isHeelLifted, setIsHeelLifted] = useState(false);
   
+  // Voice Feedback logic
+  const lastSpokenRef = useRef({});
+  
+  const getBestPolishVoice = () => {
+    const voices = window.speechSynthesis.getVoices();
+    // Preferujemy głosy Google Online lub Microsoft Natural, które brzmią najlepiej
+    return voices.find(v => v.lang === 'pl-PL' && v.name.includes('Google')) || 
+           voices.find(v => v.lang === 'pl-PL' && v.name.includes('Natural')) ||
+           voices.find(v => v.lang === 'pl-PL') ||
+           null;
+  };
+
+  const speak = (text, type, cooldown = 4000) => {
+    if (!window.speechSynthesis) return;
+    const now = Date.now();
+    if (window.speechSynthesis.speaking) return;
+    if (lastSpokenRef.current[type] && now - lastSpokenRef.current[type] < cooldown) return;
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    const bestVoice = getBestPolishVoice();
+    
+    if (bestVoice) {
+      utterance.voice = bestVoice;
+    }
+
+    utterance.lang = 'pl-PL';
+    utterance.rate = 1.0; // Standardowe tempo dla lepszej czytelności
+    utterance.pitch = 0.95; // Lekko obniżony ton brzmi bardziej profesjonalnie (trener)
+    
+    lastSpokenRef.current[type] = now;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Inicjalizacja głosów (niektóre przeglądarki ładują je asynchronicznie)
+  useEffect(() => {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.getVoices();
+      const handleVoicesChanged = () => window.speechSynthesis.getVoices();
+      window.speechSynthesis.addEventListener('voiceschanged', handleVoicesChanged);
+      return () => window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
+    }
+  }, []);
+  
   const stageRef = useRef('idle');
   const statsRef = useRef({ kneeAngles: [], backAngles: [], shallowReps: 0, poorBackFrames: 0, heelLiftFrames: 0, totalFrames: 0 });
   const repCountRef = useRef(0);
@@ -60,6 +103,7 @@ const CameraView = ({ isActive, selectedExercise, onWorkoutFinish }) => {
 
   useEffect(() => {
     if (workoutStage === 'starting') {
+      speak("Zaczynamy trening! Skup się na technice i daj z siebie wszystko.", "start", 1000);
       const timer = setTimeout(() => {
         setWorkoutStage('active');
         if (videoRef.current?.srcObject) {
@@ -75,6 +119,9 @@ const CameraView = ({ isActive, selectedExercise, onWorkoutFinish }) => {
             const bPen = (s.poorBackFrames / s.totalFrames) * 200;
             const dPen = (s.shallowReps / (repCountRef.current || 1)) * 30;
             score = Math.max(0, Math.round(score - hPen - bPen - dPen));
+            
+            speak(`Świetna robota! Ukończyłeś trening. Wykonałeś ${repCountRef.current} powtórzeń. Sprawdź swój raport.`, "finish", 1000);
+
             onWorkoutFinish(repCountRef.current, url, {
               knee: { min: Math.min(...s.kneeAngles) || 0, avg: Math.round(s.kneeAngles.reduce((a,b)=>a+b,0)/s.kneeAngles.length) || 0 },
               back: { max: Math.max(...s.backAngles) || 0, avg: Math.round(s.backAngles.reduce((a,b)=>a+b,0)/s.backAngles.length) || 0 },
@@ -129,7 +176,16 @@ const CameraView = ({ isActive, selectedExercise, onWorkoutFinish }) => {
 
       if (stage === 'active') {
         statsRef.current.totalFrames++; statsRef.current.kneeAngles.push(kneeA); statsRef.current.backAngles.push(backT);
-        if (backT > 45) statsRef.current.poorBackFrames++; if (lifted) statsRef.current.heelLiftFrames++;
+        
+        if (backT > 45) {
+          statsRef.current.poorBackFrames++;
+          speak("Wyprostuj plecy i wypchnij klatkę do przodu. Dbaj o swój kręgosłup.", "back_error", 6000);
+        }
+        if (lifted) {
+          statsRef.current.heelLiftFrames++;
+          speak("Przyklej pięty do ziemi. To klucz do stabilności i bezpieczeństwa.", "heel_error", 5000);
+        }
+
         const isDeep = kneeA < 105;
         let bColor = "#22c55e"; let bStat = "STABLE";
         if (backT >= 35 && backT <= 45) { bColor = "#f59e0b"; bStat = "WARNING"; } else if (backT > 45) { bColor = "#ef4444"; bStat = "POOR"; }
@@ -138,7 +194,20 @@ const CameraView = ({ isActive, selectedExercise, onWorkoutFinish }) => {
         ctx.fillStyle = bColor; ctx.fillText(`${backT}° BACK`, lm[sIdx.h].x * width + 15, lm[sIdx.h].y * height);
         if (lifted) { ctx.beginPath(); ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 5; ctx.moveTo(lm[sIdx.heel].x * width - 20, lm[sIdx.heel].y * height + 5); ctx.lineTo(lm[sIdx.heel].x * width + 20, lm[sIdx.heel].y * height + 5); ctx.stroke(); }
         if (kneeA < 110 && phase !== "down") setPhase("down");
-        if (kneeA > 160 && phase === "down") { if (Math.min(...statsRef.current.kneeAngles.slice(-30)) > 105) statsRef.current.shallowReps++; setRepCount(prev => { repCountRef.current = prev + 1; return prev + 1; }); setPhase("up"); }
+        if (kneeA > 160 && phase === "down") { 
+          const minKnee = Math.min(...statsRef.current.kneeAngles.slice(-30));
+          if (minKnee > 105) {
+            statsRef.current.shallowReps++; 
+            speak("Zejdź nieco niżej przy kolejnym powtórzeniu. Pełny zakres ruchu daje najlepsze efekty.", "depth_error", 5000);
+          } else {
+            const nextCount = repCountRef.current + 1;
+            if (nextCount % 5 === 0) {
+              speak(`Świetnie! Masz już ${nextCount} powtórzeń. Tak trzymaj!`, "milestone", 3000);
+            }
+          }
+          setRepCount(prev => { repCountRef.current = prev + 1; return prev + 1; }); 
+          setPhase("up"); 
+        }
         ctx.save(); ctx.fillStyle = "rgba(2, 6, 23, 0.9)"; ctx.beginPath(); ctx.roundRect(10, 10, 220, 130, 15); ctx.fill();
         ctx.fillStyle = "#38bdf8"; ctx.font = "bold 18px monospace"; ctx.fillText(`SQUATS: ${repCountRef.current}`, 25, 35);
         ctx.font = "11px monospace"; ctx.fillStyle = isDeep ? "#22c55e" : "#f59e0b"; ctx.fillText(`DEPTH: ${isDeep ? '✓ PERFECT' : '⚠ GO LOWER'}`, 25, 60);

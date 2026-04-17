@@ -48,7 +48,7 @@ const FeedbackPage = ({ workoutData, onBack, onSelectNewExercise }) => {
     };
     if (score > 70) return {
       title: "Poziom: SOLID",
-      text: "Bardzo dobra baza. Zwróć uwagę na detale – uciekające plecy lub lekko uniesione pięty w ostatniej fazie ruchu. Kontroluj tempo przy schodzeniu w dół.",
+      text: "Bardzo dobra baza. Zwróć uwagę na detale U+002d uciekające plecy lub lekko uniesione pięty w ostatniej fazie ruchu. Kontroluj tempo przy schodzeniu w dół.",
       icon: <CheckCircle2 className="text-green-500" />
     };
     if (score > 40) return {
