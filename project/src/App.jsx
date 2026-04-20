@@ -5,13 +5,14 @@ import * as tf from "@tensorflow/tfjs-core";
 import { 
   BrainCircuit, Footprints, LayoutGrid, Activity as ActivityIcon, 
   Play, Square, LogOut, Menu, ChevronLeft, Settings, User, History, 
-  CheckCircle2, AlertCircle, Loader2
+  CheckCircle2, AlertCircle, Loader2, Medal, Award, X, Trophy, Target
 } from 'lucide-react';
 
-import GymActivitiesList from './GymActivitiesList';
+// IMPORTUJEMY AKTUALNĄ LISTĘ I STAŁĄ ACTIVITIES
+import GymActivitiesList, { ACTIVITIES } from './GymActivitiesList';
 import InteractiveModel from './InteractiveModel';
 import FeedbackPage from './FeedbackPage';
-import UserProfile from './UserProfile'; // Dodano import profilu
+import UserProfile from './UserProfile'; 
 import { supabase } from './supabaseClient';
 
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
@@ -24,7 +25,6 @@ const angleDeg = (a, b, c) => {
   return (Math.acos(clamp(dot / (magAB * magCB), -1, 1)) * 180) / Math.PI;
 };
 
-//kamerkawidoczek
 const CameraView = ({ isActive, selectedExercise, onWorkoutFinish }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -40,12 +40,10 @@ const CameraView = ({ isActive, selectedExercise, onWorkoutFinish }) => {
   const [calibProgress, setCalibProgress] = useState(0);
   const [isHeelLifted, setIsHeelLifted] = useState(false);
   
-  // Voice Feedback logic
   const lastSpokenRef = useRef({});
   
   const getBestPolishVoice = () => {
     const voices = window.speechSynthesis.getVoices();
-    // Preferujemy głosy Google Online lub Microsoft Natural, które brzmią najlepiej
     return voices.find(v => v.lang === 'pl-PL' && v.name.includes('Google')) || 
            voices.find(v => v.lang === 'pl-PL' && v.name.includes('Natural')) ||
            voices.find(v => v.lang === 'pl-PL') ||
@@ -57,23 +55,16 @@ const CameraView = ({ isActive, selectedExercise, onWorkoutFinish }) => {
     const now = Date.now();
     if (window.speechSynthesis.speaking) return;
     if (lastSpokenRef.current[type] && now - lastSpokenRef.current[type] < cooldown) return;
-
     const utterance = new SpeechSynthesisUtterance(text);
     const bestVoice = getBestPolishVoice();
-    
-    if (bestVoice) {
-      utterance.voice = bestVoice;
-    }
-
+    if (bestVoice) utterance.voice = bestVoice;
     utterance.lang = 'pl-PL';
-    utterance.rate = 1.0; // Standardowe tempo dla lepszej czytelności
-    utterance.pitch = 0.95; // Lekko obniżony ton brzmi bardziej profesjonalnie (trener)
-    
+    utterance.rate = 1.0;
+    utterance.pitch = 0.95;
     lastSpokenRef.current[type] = now;
     window.speechSynthesis.speak(utterance);
   };
 
-  // Inicjalizacja głosów (niektóre przeglądarki ładują je asynchronicznie)
   useEffect(() => {
     if (window.speechSynthesis) {
       window.speechSynthesis.getVoices();
@@ -104,7 +95,7 @@ const CameraView = ({ isActive, selectedExercise, onWorkoutFinish }) => {
 
   useEffect(() => {
     if (workoutStage === 'starting') {
-      speak("Zaczynamy trening! Skup się na technice i daj z siebie wszystko.", "start", 1000);
+      speak("Zaczynamy trening!", "start", 1000);
       const timer = setTimeout(() => {
         setWorkoutStage('active');
         if (videoRef.current?.srcObject) {
@@ -120,9 +111,6 @@ const CameraView = ({ isActive, selectedExercise, onWorkoutFinish }) => {
             const bPen = (s.poorBackFrames / s.totalFrames) * 200;
             const dPen = (s.shallowReps / (repCountRef.current || 1)) * 30;
             score = Math.max(0, Math.round(score - hPen - bPen - dPen));
-            
-            speak(`Świetna robota! Ukończyłeś trening. Wykonałeś ${repCountRef.current} powtórzeń. Sprawdź swój raport.`, "finish", 1000);
-
             onWorkoutFinish(repCountRef.current, url, {
               knee: { min: Math.min(...s.kneeAngles) || 0, avg: Math.round(s.kneeAngles.reduce((a,b)=>a+b,0)/s.kneeAngles.length) || 0 },
               back: { max: Math.max(...s.backAngles) || 0, avg: Math.round(s.backAngles.reduce((a,b)=>a+b,0)/s.backAngles.length) || 0 },
@@ -177,35 +165,21 @@ const CameraView = ({ isActive, selectedExercise, onWorkoutFinish }) => {
 
       if (stage === 'active') {
         statsRef.current.totalFrames++; statsRef.current.kneeAngles.push(kneeA); statsRef.current.backAngles.push(backT);
-        
-        if (backT > 45) {
-          statsRef.current.poorBackFrames++;
-          speak("Wyprostuj plecy i wypchnij klatkę do przodu. Dbaj o swój kręgosłup.", "back_error", 6000);
-        }
-        if (lifted) {
-          statsRef.current.heelLiftFrames++;
-          speak("Przyklej pięty do ziemi. To klucz do stabilności i bezpieczeństwa.", "heel_error", 5000);
-        }
+        if (backT > 45) { statsRef.current.poorBackFrames++; speak("Wyprostuj plecy", "back_error", 6000); }
+        if (lifted) { statsRef.current.heelLiftFrames++; speak("Przyklej pięty", "heel_error", 5000); }
 
         const isDeep = kneeA < 105;
         let bColor = "#22c55e"; let bStat = "STABLE";
         if (backT >= 35 && backT <= 45) { bColor = "#f59e0b"; bStat = "WARNING"; } else if (backT > 45) { bColor = "#ef4444"; bStat = "POOR"; }
+        
         ctx.font = "bold 14px monospace"; ctx.shadowBlur = 4; ctx.shadowColor = "black";
         ctx.fillStyle = isDeep ? "#22c55e" : "#f59e0b"; ctx.fillText(`${kneeA}° DEPTH`, lm[sIdx.k].x * width + 15, lm[sIdx.k].y * height);
         ctx.fillStyle = bColor; ctx.fillText(`${backT}° BACK`, lm[sIdx.h].x * width + 15, lm[sIdx.h].y * height);
-        if (lifted) { ctx.beginPath(); ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 5; ctx.moveTo(lm[sIdx.heel].x * width - 20, lm[sIdx.heel].y * height + 5); ctx.lineTo(lm[sIdx.heel].x * width + 20, lm[sIdx.heel].y * height + 5); ctx.stroke(); }
+        
         if (kneeA < 110 && phase !== "down") setPhase("down");
         if (kneeA > 160 && phase === "down") { 
           const minKnee = Math.min(...statsRef.current.kneeAngles.slice(-30));
-          if (minKnee > 105) {
-            statsRef.current.shallowReps++; 
-            speak("Zejdź nieco niżej przy kolejnym powtórzeniu. Pełny zakres ruchu daje najlepsze efekty.", "depth_error", 5000);
-          } else {
-            const nextCount = repCountRef.current + 1;
-            if (nextCount % 5 === 0) {
-              speak(`Świetnie! Masz już ${nextCount} powtórzeń. Tak trzymaj!`, "milestone", 3000);
-            }
-          }
+          if (minKnee > 105) statsRef.current.shallowReps++; 
           setRepCount(prev => { repCountRef.current = prev + 1; return prev + 1; }); 
           setPhase("up"); 
         }
@@ -215,7 +189,7 @@ const CameraView = ({ isActive, selectedExercise, onWorkoutFinish }) => {
         ctx.fillStyle = bColor; ctx.fillText(`BACK: ${bStat}`, 25, 80);
         ctx.fillStyle = lifted ? "#ef4444" : "#22c55e"; ctx.fillText(`FEET: ${lifted ? '⚠ HEELS UP!' : '✓ GROUNDED'}`, 25, 100); ctx.restore();
       }
-      if (window.drawConnectors) window.drawConnectors(ctx, lm, window.POSE_CONNECTIONS, { color: stage === 'active' ? "rgba(56, 189, 248, 0.5)" : "rgba(255, 255, 255, 0.1)", lineWidth: 2 });
+      if (window.drawConnectors) window.drawConnectors(ctx, lm, window.POSE_CONNECTIONS, { color: "rgba(56, 189, 248, 0.5)", lineWidth: 2 });
     }
   };
 
@@ -224,30 +198,18 @@ const CameraView = ({ isActive, selectedExercise, onWorkoutFinish }) => {
 
   useEffect(() => {
     if (!videoRef.current) return;
-    
     const init = async () => {
       try {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          setSetupHint("BŁĄD: Wymagane połączenie HTTPS do obsługi kamery.");
-          return;
-        }
-
         poseRef.current = new window.Pose({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}` });
         poseRef.current.setOptions({ modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
         poseRef.current.onResults((res) => onResultsRef.current(res));
-        
         cameraRef.current = new window.Camera(videoRef.current, { 
           onFrame: async () => { if (videoRef.current) await poseRef.current.send({ image: videoRef.current }); }, 
           width: 1280, height: 720 
         });
-        
         await cameraRef.current.start();
-      } catch (err) {
-        console.error("Camera init failed:", err);
-        setSetupHint("Nie udało się uruchomić kamery.");
-      }
+      } catch (err) { console.error(err); }
     };
-
     init();
     return () => { cameraRef.current?.stop(); poseRef.current?.close(); };
   }, []);
@@ -267,17 +229,14 @@ const CameraView = ({ isActive, selectedExercise, onWorkoutFinish }) => {
       )}
       <div className="absolute inset-0 pointer-events-none z-50 flex items-center justify-center p-6 text-center">
         {workoutStage === 'calibrating' && (
-          <div className="bg-slate-900/95 border-2 border-sky-500/50 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-[0_0_80px_rgba(0,0,0,0.8)] flex flex-col items-center gap-6 animate-in fade-in zoom-in">
+          <div className="bg-slate-900/95 border-2 border-sky-500/50 backdrop-blur-xl p-8 rounded-[2.5rem] flex flex-col items-center gap-6">
             <h3 className="text-2xl font-black uppercase tracking-widest text-white">{setupHint}</h3>
             {calibProgress > 0 && <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden"><div className="bg-green-500 h-full transition-all duration-100" style={{ width: `${calibProgress}%` }} /></div>}
             <div className="w-48 h-72 border-2 border-dashed border-sky-500/30 rounded-3xl" />
           </div>
         )}
         {workoutStage === 'starting' && (
-          <div className="animate-in zoom-in fade-in"><div className="bg-green-500 text-black font-black text-8xl px-20 py-10 rounded-full shadow-[0_0_100px_#22c55e] italic animate-bounce">ZACZYNAJ!</div></div>
-        )}
-        {workoutStage === 'active' && isHeelLifted && (
-          <div className="absolute bottom-32 bg-red-600 text-white font-black px-10 py-4 rounded-2xl shadow-2xl animate-bounce border-4 border-white">PRZYKLEJ PIĘTY DO ZIEMI!</div>
+          <div className="animate-in zoom-in fade-in"><div className="bg-green-500 text-black font-black text-8xl px-20 py-10 rounded-full shadow-[0_0_100px_#22c55e] italic">ZACZYNAJ!</div></div>
         )}
       </div>
     </div>
@@ -286,22 +245,39 @@ const CameraView = ({ isActive, selectedExercise, onWorkoutFinish }) => {
 
 export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [showAchievements, setShowAchievements] = useState(false);
   const [currentView, setCurrentView] = useState('list'); 
   const [muscleFilter, setMuscleFilter] = useState('Wszystkie');
   const [selectedEx, setSelectedEx] = useState({ name: "Przysiady Klasyczne", id: "001", category: "Nogi" });
   const [active, setActive] = useState(false);
   const [lastWorkout, setLastWorkout] = useState(null);
-  const [avatarUrl, setAvatarUrl] = useState(localStorage.getItem('userAvatar') || null); // Dodano stan zdjęcia
+  const [avatarUrl, setAvatarUrl] = useState(localStorage.getItem('userAvatar') || null);
+  
+  // NOWY STAN DLA DEEP LINKINGU OSIĄGNIĘĆ
+  const [selectedAchievementId, setSelectedAchievementId] = useState(null);
 
   const handleWorkoutFinish = (reps, videoURL, debugInfo) => {
     setLastWorkout({ name: selectedEx.name, category: selectedEx.category, reps, videoUrl: videoURL, debug: debugInfo, score: debugInfo.score, date: new Date().toLocaleTimeString() });
     setCurrentView('feedback'); setActive(false);
   };
 
+  // FUNKCJA OBSŁUGUJĄCA KLIKNIĘCIE W OSIĄGNIĘCIE
+  const handleAchievementClick = (id) => {
+    setSelectedAchievementId(id);
+    setCurrentView('profile');
+    setShowAchievements(false); // Zamyka panel boczny
+    
+    // Czyścimy ID po chwili, aby przy ręcznym wejściu na profil nie przewijało nas ponownie
+    setTimeout(() => setSelectedAchievementId(null), 1000);
+  };
+
   return (
     <div className="h-[100dvh] w-screen bg-slate-950 text-blue-100 flex overflow-hidden relative font-sans">
+      
+      {/* Overlay dla Menu Głównego (Mobile) */}
       {isSidebarOpen && <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] md:hidden" onClick={() => setIsSidebarOpen(false)} />}
       
+      {/* LEWY SIDEBAR - NAWIGACJA */}
       <aside className={`bg-slate-900 border-r border-slate-800 flex flex-col transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] z-[110] 
         ${isSidebarOpen ? 'w-80 translate-x-0' : 'w-24 -translate-x-full md:translate-x-0'} 
         fixed md:relative h-full shadow-2xl`}>
@@ -331,15 +307,7 @@ export default function App() {
             { view: 'list', icon: <LayoutGrid size={22} />, label: 'Biblioteka' },
             { view: 'model', icon: <ActivityIcon size={22} />, label: 'Trening' },
             { view: 'feedback', icon: <History size={22} />, label: 'Raport', disabled: !lastWorkout },
-            { 
-              view: 'profile', 
-              icon: avatarUrl ? (
-                <img src={avatarUrl} className="w-6 h-6 rounded-full object-cover border border-sky-400" />
-              ) : (
-                <User size={22} />
-              ), 
-              label: 'Profil' 
-            } // Dodano profil do menu
+            { view: 'profile', icon: avatarUrl ? <img src={avatarUrl} className="w-6 h-6 rounded-full object-cover border border-sky-400" alt="p" /> : <User size={22} />, label: 'Profil' }
           ].map((item) => (
             <button
               key={item.view}
@@ -349,9 +317,7 @@ export default function App() {
                 ${item.disabled ? 'opacity-20 cursor-not-allowed' : ''}
                 ${currentView === item.view ? 'bg-sky-500 text-slate-950 shadow-[0_0_25px_rgba(14,165,233,0.3)]' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
             >
-              <div className={`shrink-0 transition-transform duration-300 ${currentView === item.view ? 'scale-110' : 'group-hover:scale-110'}`}>
-                {item.icon}
-              </div>
+              <div className="shrink-0 group-hover:scale-110 transition-transform">{item.icon}</div>
               <span className={`font-black text-xs uppercase tracking-[0.2em] transition-all duration-500 whitespace-nowrap 
                 ${isSidebarOpen ? 'opacity-100 max-w-[150px]' : 'opacity-0 max-w-0 overflow-hidden'}`}>
                 {item.label}
@@ -368,18 +334,22 @@ export default function App() {
         </div>
       </aside>
 
+      {/* CONTENT GŁÓWNY */}
       <main className="flex-grow flex flex-col p-4 md:p-8 overflow-y-auto relative">
         <header className="flex justify-between items-center mb-6 gap-4">
           <div className="flex items-center gap-4">
             {!isSidebarOpen && <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-slate-900 border border-slate-800 rounded-xl text-sky-400 md:hidden"><Menu size={24} /></button>}
             <p className="text-xl md:text-2xl font-black uppercase italic tracking-tight text-white">
-              {currentView === 'list' ? 'Eksploruj Bibliotekę' : 
-               currentView === 'profile' ? 'Twój Profil' : 'Twoja Sesja AI'}
+              {currentView === 'list' ? 'Eksploruj Bibliotekę' : currentView === 'profile' ? 'Twój Profil' : 'Twoja Sesja AI'}
             </p>
           </div>
-          <div className="h-10 w-10 bg-slate-800 rounded-full border border-slate-700 flex items-center justify-center shrink-0">
-            <Settings size={20} className="text-slate-400 cursor-pointer hover:text-sky-400 transition-colors" onClick={() => setCurrentView('profile')} />
-          </div>
+          {currentView !== 'profile' && (
+          <button 
+            onClick={() => setShowAchievements(true)}
+            className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl hover:border-amber-500 transition-all group shadow-lg"
+          >
+            <Medal size={22} className="text-amber-500 group-hover:scale-110 transition-transform" />
+          </button>)}
         </header>
 
         <div className="flex-grow">
@@ -388,10 +358,8 @@ export default function App() {
           ) : currentView === 'profile' ? (
             <UserProfile 
               avatarUrl={avatarUrl} 
-              onAvatarChange={(newUrl) => {
-                setAvatarUrl(newUrl);
-                localStorage.setItem('userAvatar', newUrl);
-              }} 
+              onAvatarChange={(newUrl) => { setAvatarUrl(newUrl); localStorage.setItem('userAvatar', newUrl); }} 
+              initialAchievementId={selectedAchievementId}
             />
           ) : (
             <div className="h-full flex flex-col xl:grid xl:grid-cols-2 gap-6">
@@ -403,7 +371,6 @@ export default function App() {
                       <div className="z-10 bg-slate-950/50 p-6 rounded-3xl border border-slate-800/50 backdrop-blur-sm">
                         <p className="text-sm font-black uppercase text-sky-500 tracking-[0.2em] italic mb-2">Wybrane ćwiczenie</p>
                         <h3 className="text-2xl font-black uppercase mb-4">{selectedEx.name}</h3>
-                        <p className="text-[10px] text-slate-400 uppercase font-bold max-w-xs leading-relaxed italic border-t border-slate-800 pt-4">Uruchom AI i ustaw się w polu widzenia, aby rozpocząć analizę.</p>
                       </div>
                     </div>
                   ) : (
@@ -421,11 +388,11 @@ export default function App() {
                 </div>
                 <div className="bg-slate-900/80 backdrop-blur-md h-[72px] rounded-2xl border border-slate-800 flex items-center justify-between px-6 shadow-xl">
                   <div className="flex items-center gap-3">
-                    <div className={`h-3 w-3 rounded-full ${active ? 'bg-green-500 animate-pulse shadow-[0_0_15px_#22c55e]' : 'bg-red-500'}`} />
-                    <p className="hidden xs:block text-[10px] text-slate-400 font-black tracking-widest uppercase">{active ? 'System Active' : 'System Standby'}</p>
+                    <div className={`h-3 w-3 rounded-full ${active ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                    <p className="hidden xs:block text-[10px] text-slate-400 font-black uppercase tracking-widest">{active ? 'System Active' : 'System Standby'}</p>
                   </div>
                   {currentView === 'model' && (
-                    <button onClick={() => setActive(!active)} className={`flex items-center gap-3 px-10 h-[48px] rounded-2xl border transition-all duration-300 font-black uppercase tracking-widest text-[10px] ${active ? 'bg-red-500 border-red-400 text-white shadow-[0_0_20px_rgba(239,68,68,0.3)]' : 'bg-sky-500 border-sky-400 text-slate-950 shadow-[0_0_20px_rgba(14,165,233,0.4)]'}`}>
+                    <button onClick={() => setActive(!active)} className={`flex items-center gap-3 px-10 h-[48px] rounded-2xl border transition-all duration-300 font-black uppercase tracking-widest text-[10px] ${active ? 'bg-red-500 border-red-400 text-white' : 'bg-sky-500 border-sky-400 text-slate-950'}`}>
                       {active ? <Square size={14} fill="white" /> : <Play size={14} fill="black" />}
                       <span>{active ? 'Zatrzymaj' : 'Uruchom AI'}</span>
                     </button>
@@ -436,6 +403,59 @@ export default function App() {
           )}
         </div>
       </main>
+
+      {/* --- PRAWY SIDEBAR: OSIĄGNIĘCIA --- */}
+      {showAchievements && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] transition-opacity duration-300"
+          onClick={() => setShowAchievements(false)}
+        />
+      )}
+
+      <div className={`fixed top-0 right-0 h-full w-80 max-w-[90%] bg-slate-900 border-l border-slate-800 z-[201] shadow-2xl transform transition-transform duration-300 ease-out p-6 flex flex-col ${showAchievements ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-500/10 rounded-lg">
+              <Award className="text-amber-500" size={24} />
+            </div>
+            <h2 className="text-xl font-black italic uppercase text-white tracking-tighter">Osiągnięcia</h2>
+          </div>
+          <button 
+            onClick={() => setShowAchievements(false)}
+            className="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-white"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto pr-2 space-y-4 scrollbar-hide">
+          {ACTIVITIES && ACTIVITIES.map(a => (
+            <div 
+              key={a.id} 
+              onClick={() => handleAchievementClick(a.id)}
+              className="group bg-black/40 border border-slate-800 p-4 rounded-2xl flex items-center gap-4 hover:border-amber-500/50 transition-all cursor-pointer active:scale-95"
+            >
+              <div className="relative">
+                <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800 group-hover:bg-amber-500/10 transition-colors">
+                   <Trophy size={18} className="text-amber-500" />
+                </div>
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-black" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-[11px] font-black uppercase italic text-white leading-none mb-1 group-hover:text-amber-500 transition-colors">{a.achievement || 'Mistrz Formy'}</h4>
+                <div className="flex items-center gap-1.5">
+                  <Target size={10} className="text-slate-600" />
+                  <p className="text-[9px] text-slate-500 uppercase font-bold tracking-tighter">Za: {a.name}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6 pt-6 border-t border-slate-800 text-center text-slate-500 text-[10px] uppercase font-bold tracking-widest">
+           System FormCheck AI v2.0
+        </div>
+      </div>
     </div>
   );
 }
