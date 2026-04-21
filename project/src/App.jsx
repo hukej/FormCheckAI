@@ -385,13 +385,13 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest }) {
               {currentView === 'list' ? 'Eksploruj Bibliotekę' : currentView === 'profile' ? 'Twój Profil' : 'Twoja Sesja AI'}
             </p>
           </div>
-          
+         {currentView !== 'profile' && (
           <button 
             onClick={() => setShowAchievements(true)}
-            className="p-2 bg-slate-900 border border-slate-800 rounded-xl hover:border-amber-500 transition-all group shadow-lg"
+            className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl hover:border-amber-500 transition-all group shadow-lg"
           >
             <Medal size={22} className="text-amber-500 group-hover:scale-110 transition-transform" />
-          </button>
+          </button>)}
         </header>
 
         <div className="flex-grow">
