@@ -199,6 +199,7 @@ const UserProfile = ({ avatarUrl, onAvatarChange, isGuest, onLogin, initialAchie
               <HeaderZapisz title="Dane Fizyczne" saveProfileData={saveProfileData} saveState={saveState} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Input text="Imię" val={formData.firstName} onChange={(e)=>setFormData({...formData, firstName: e.target.value})} />
+                <Input text="Nazwisko" val={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} />
                 <Input text="Wiek" type="number" val={formData.age} onChange={(e)=>setFormData({...formData, age: e.target.value})} />
                 <Input text="Waga (kg)" type="number" val={formData.weight} onChange={(e)=>setFormData({...formData, weight: e.target.value})} />
                 <Input text="Wzrost (cm)" type="number" val={formData.height} onChange={(e)=>setFormData({...formData, height: e.target.value})} />

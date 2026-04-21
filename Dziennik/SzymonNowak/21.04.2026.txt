@@ -1,0 +1,1 @@
+Dzisiejszego dnia zajmowałem się poprawkami drobnych braków wizualnych oraz testowaniem działania algorytmów wykrywania ruchu.

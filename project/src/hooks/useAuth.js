@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 
 export const useAuth = () => {
@@ -6,6 +6,7 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false); 
   const [authLoading, setAuthLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -34,12 +35,41 @@ export const useAuth = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const triggerShake = () => {
+  // Auto-fill remembered email
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('remembered_email');
+    if (savedEmail) {
+      setFormData(prev => ({ ...prev, email: savedEmail }));
+      setRememberMe(true);
+    }
+  }, []);
+
+  const triggerShake = useCallback(() => {
     setIsShaking(true);
     setTimeout(() => setIsShaking(false), 400);
-  };
+  }, []);
 
-  const handleChange = (e) => {
+  const validateField = useCallback((name, value) => {
+    let error = "";
+    if (name === 'email') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (value && !emailRegex.test(value)) error = "Błędny format e-mail";
+    }
+    if (name === 'password' && value && value.length < 6) {
+      error = "Hasło: min. 6 znaków";
+    }
+    if (name === 'confirmPassword' && value !== formData.password) {
+      error = "Hasła nie są identyczne";
+    }
+    if (isRegistering && (name === 'firstName' || name === 'lastName') && !value) {
+      error = "To pole jest wymagane";
+    }
+
+    setErrors(prev => ({ ...prev, [name]: error }));
+    return error;
+  }, [formData.password, isRegistering]);
+
+  const handleChange = useCallback((e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setAuthError('');
@@ -50,9 +80,14 @@ export const useAuth = () => {
         return newErrs;
       });
     }
-  };
+  }, [errors]);
 
-  const validate = () => {
+  const handleBlur = useCallback((e) => {
+    const { name, value } = e.target;
+    validateField(name, value);
+  }, [validateField]);
+
+  const validateAll = () => {
     let newErrors = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) newErrors.email = "Błędny format e-mail";
@@ -74,8 +109,14 @@ export const useAuth = () => {
   const handleAuth = async (e) => {
     if (e) e.preventDefault();
     setAuthError('');
-    if (!validate()) return;
+    if (!validateAll()) return;
     setAuthLoading(true);
+
+    if (rememberMe) {
+      localStorage.setItem('remembered_email', formData.email);
+    } else {
+      localStorage.removeItem('remembered_email');
+    }
 
     try {
       if (isRegistering) {
@@ -88,10 +129,7 @@ export const useAuth = () => {
           }
         });
         if (error) throw error;
-
-        if (data?.user && !data?.session) {
-          setIsEmailSent(true);
-        }
+        if (data?.user && !data?.session) setIsEmailSent(true);
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email: formData.email,
@@ -108,6 +146,27 @@ export const useAuth = () => {
     }
   };
 
+  const handleResetRequest = async (e) => {
+    if (e) e.preventDefault();
+    if (!formData.email) {
+      setErrors({ email: "Podaj e-mail" });
+      triggerShake();
+      return;
+    }
+    setAuthLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setAuthLoading(false);
+    if (error) {
+      setAuthError(error.message.toUpperCase());
+      triggerShake();
+    } else {
+      setIsEmailSent(true);
+      setIsForgotPassword(false);
+    }
+  };
+
   return {
     session,
     loading,
@@ -115,6 +174,8 @@ export const useAuth = () => {
     setIsGuest,
     isRegistering,
     setIsRegistering,
+    isForgotPassword,
+    setIsForgotPassword,
     isEmailSent,
     setIsEmailSent,
     authLoading,
@@ -129,6 +190,8 @@ export const useAuth = () => {
     isShaking,
     formData,
     handleChange,
-    handleAuth
+    handleBlur,
+    handleAuth,
+    handleResetRequest
   };
 };

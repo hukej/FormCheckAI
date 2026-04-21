@@ -1,7 +1,22 @@
 import React from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
-const InputField = ({ name, icon: Icon, placeholder, type = "text", error, showEyeToggle, value, onChange, showPassword, setShowPassword, autoComplete, isCompact }) => (
+const InputField = React.memo(({ 
+  name, 
+  icon: Icon, 
+  placeholder, 
+  type = "text", 
+  error, 
+  showEyeToggle, 
+  value, 
+  onChange, 
+  onBlur,
+  showPassword, 
+  setShowPassword, 
+  autoComplete, 
+  isCompact,
+  autoFocus
+}) => (
   <div className={`w-full ${isCompact ? 'min-h-[60px]' : 'min-h-[68px]'} transition-all duration-300`}>
     <div className={`relative w-full flex items-center bg-[#0f172a]/60 border rounded-xl outline-none transition-all duration-300
         ${error 
@@ -19,6 +34,8 @@ const InputField = ({ name, icon: Icon, placeholder, type = "text", error, showE
         value={value}
         placeholder={placeholder}
         onChange={onChange}
+        onBlur={onBlur}
+        autoFocus={autoFocus}
         autoComplete={autoComplete || "off"}
         className={`w-full ${isCompact ? 'h-[38px]' : 'h-[44px]'} bg-transparent p-3 rounded-xl text-slate-100 text-[13px] outline-none placeholder:text-slate-600 font-medium
           ${Icon ? 'pl-10' : 'pl-3'}
@@ -43,6 +60,8 @@ const InputField = ({ name, icon: Icon, placeholder, type = "text", error, showE
       <div className={isCompact ? "h-[8px]" : "h-[12px]"}></div> 
     )}
   </div>
-);
+));
+
+InputField.displayName = 'InputField';
 
 export default InputField;

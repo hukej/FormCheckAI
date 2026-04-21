@@ -1,13 +1,14 @@
 import React from 'react';
 import { 
   User, Mail, Lock, ArrowRight, CheckCircle2, 
-  AlertCircle, Loader2
+  AlertCircle, Loader2, ArrowLeft
 } from 'lucide-react';
 import InputField from './InputField';
 
 export default function Auth({ onGoToLanding, authState }) {
   const {
     isRegistering, setIsRegistering,
+    isForgotPassword, setIsForgotPassword,
     isEmailSent, setIsEmailSent,
     authLoading,
     showPassword, setShowPassword,
@@ -17,7 +18,9 @@ export default function Auth({ onGoToLanding, authState }) {
     isShaking,
     formData,
     handleChange,
-    handleAuth
+    handleBlur,
+    handleAuth,
+    handleResetRequest
   } = authState;
 
   return (
@@ -51,15 +54,53 @@ export default function Auth({ onGoToLanding, authState }) {
               </div>
               <h2 className="text-white font-bold text-xl mb-3 uppercase tracking-tight">Sprawdź skrzynkę!</h2>
               <p className="text-slate-400 text-[13px] leading-relaxed mb-8">
-                Wysłaliśmy link aktywacyjny na adres:<br/>
+                {isForgotPassword ? 'Wysłaliśmy link do resetowania hasła na adres:' : 'Wysłaliśmy link aktywacyjny na adres:'}<br/>
                 <span className="text-sky-400 font-mono mt-2 block bg-sky-400/5 py-1 rounded border border-sky-400/10">{formData.email}</span>
               </p>
               <button 
-                onClick={() => { setIsEmailSent(false); setIsRegistering(false); }}
+                onClick={() => { setIsEmailSent(false); setIsRegistering(false); setIsForgotPassword(false); }}
                 className="text-sky-500 hover:text-sky-400 text-[10px] font-black uppercase tracking-[0.2em] transition-all border-b border-sky-500/20 pb-1"
               >
                 [ Wróć do logowania ]
               </button>
+            </div>
+          ) : isForgotPassword ? (
+            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+              <button 
+                onClick={() => setIsForgotPassword(false)}
+                className="flex items-center gap-2 text-slate-500 hover:text-white text-[10px] font-black uppercase tracking-widest mb-6 transition-colors"
+              >
+                <ArrowLeft size={14} /> Wróć
+              </button>
+              <h2 className="text-white font-bold text-xl mb-2 uppercase tracking-tight">Resetuj hasło</h2>
+              <p className="text-slate-500 text-[12px] mb-6 font-medium">Podaj e-mail powiązany z kontem, aby otrzymać link do zmiany hasła.</p>
+              
+              {authError && (
+                <div className="mb-5 p-3.5 bg-red-500/10 border border-red-500/40 rounded-xl text-red-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-3 animate-in fade-in">
+                  <AlertCircle size={16} /> {authError}
+                </div>
+              )}
+
+              <form onSubmit={handleResetRequest}>
+                <InputField 
+                  name="email" 
+                  icon={Mail} 
+                  placeholder="Twój adres e-mail" 
+                  type="email" 
+                  value={formData.email} 
+                  error={errors.email} 
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  autoFocus
+                />
+                <button 
+                  disabled={authLoading} 
+                  type="submit" 
+                  className="w-full bg-gradient-to-r from-sky-500 to-blue-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-sky-500/20 mt-4 active:scale-[0.97] transition-all flex items-center justify-center gap-3 text-[11px] tracking-[0.2em] uppercase"
+                >
+                  {authLoading ? <Loader2 className="animate-spin size-4" /> : <>Wyślij link <ArrowRight size={16} /></>}
+                </button>
+              </form>
             </div>
           ) : (
             <>
@@ -73,32 +114,37 @@ export default function Auth({ onGoToLanding, authState }) {
                 {isRegistering ? (
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
-                      <InputField name="firstName" icon={User} placeholder="Imię" value={formData.firstName} error={errors.firstName} onChange={handleChange} isCompact />
-                      <InputField name="lastName" placeholder="Nazwisko" value={formData.lastName} error={errors.lastName} onChange={handleChange} isCompact />
+                      <InputField name="firstName" icon={User} placeholder="Imię" value={formData.firstName} error={errors.firstName} onChange={handleChange} onBlur={handleBlur} isCompact />
+                      <InputField name="lastName" placeholder="Nazwisko" value={formData.lastName} error={errors.lastName} onChange={handleChange} onBlur={handleBlur} isCompact />
                     </div>
-                    <InputField name="email" icon={Mail} placeholder="Adres e-mail" type="email" value={formData.email} error={errors.email} onChange={handleChange} isCompact />
-                    <InputField name="password" icon={Lock} placeholder="Hasło" type={showPassword ? "text" : "password"} value={formData.password} error={errors.password} showEyeToggle showPassword={showPassword} setShowPassword={setShowPassword} onChange={handleChange} isCompact />
-                    <InputField name="confirmPassword" icon={Lock} placeholder="Potwierdź hasło" type={showPassword ? "text" : "password"} value={formData.confirmPassword} error={errors.confirmPassword} onChange={handleChange} isCompact />
+                    <InputField name="email" icon={Mail} placeholder="Adres e-mail" type="email" value={formData.email} error={errors.email} onChange={handleChange} onBlur={handleBlur} isCompact />
+                    <InputField name="password" icon={Lock} placeholder="Hasło" type={showPassword ? "text" : "password"} value={formData.password} error={errors.password} showEyeToggle showPassword={showPassword} setShowPassword={setShowPassword} onChange={handleChange} onBlur={handleBlur} isCompact />
+                    <InputField name="confirmPassword" icon={Lock} placeholder="Potwierdź hasło" type={showPassword ? "text" : "password"} value={formData.confirmPassword} error={errors.confirmPassword} onChange={handleChange} onBlur={handleBlur} isCompact />
                   </>
                 ) : (
                   <>
-                    <InputField name="email" icon={Mail} placeholder="Adres e-mail" type="email" value={formData.email} error={errors.email} onChange={handleChange} />
-                    <InputField name="password" icon={Lock} placeholder="Hasło użytkownika" type={showPassword ? "text" : "password"} value={formData.password} error={errors.password} showEyeToggle showPassword={showPassword} setShowPassword={setShowPassword} onChange={handleChange} />
+                    <InputField name="email" icon={Mail} placeholder="Adres e-mail" type="email" value={formData.email} error={errors.email} onChange={handleChange} onBlur={handleBlur} />
+                    <InputField name="password" icon={Lock} placeholder="Hasło użytkownika" type={showPassword ? "text" : "password"} value={formData.password} error={errors.password} showEyeToggle showPassword={showPassword} setShowPassword={setShowPassword} onChange={handleChange} onBlur={handleBlur} />
                     
-                    <div className="flex justify-center items-center gap-3 py-4">
+                    <div className="flex justify-between items-center py-4 px-1">
                       <div 
                         onClick={() => setRememberMe(!rememberMe)}
-                        className={`w-5 h-5 border rounded-lg transition-all cursor-pointer flex items-center justify-center
-                          ${rememberMe ? 'border-sky-500 bg-sky-500/20' : 'border-slate-700 bg-transparent hover:border-slate-600'}`}
+                        className="flex items-center gap-2 cursor-pointer group"
                       >
-                        {rememberMe && <div className="w-2.5 h-2.5 bg-sky-500 rounded shadow-[0_0_8px_#0ea5e9]" />}
+                        <div className={`w-4 h-4 border rounded transition-all flex items-center justify-center
+                          ${rememberMe ? 'border-sky-500 bg-sky-500/20' : 'border-slate-700 bg-transparent group-hover:border-slate-600'}`}
+                        >
+                          {rememberMe && <div className="w-2 h-2 bg-sky-500 rounded-sm shadow-[0_0_8px_#0ea5e9]" />}
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-black tracking-widest uppercase group-hover:text-slate-300">Zapamiętaj</span>
                       </div>
-                      <span 
-                        className="text-[10px] text-slate-400 font-black tracking-widest cursor-pointer select-none hover:text-sky-400 transition-colors uppercase"
-                        onClick={() => setRememberMe(!rememberMe)}
+                      <button 
+                        type="button"
+                        onClick={() => { setIsForgotPassword(true); setAuthError(''); setErrors({}); }}
+                        className="text-[10px] text-sky-500 font-black tracking-widest uppercase hover:text-sky-400 hover:underline transition-all"
                       >
-                        Zapamiętaj hasło
-                      </span>
+                        Zapomniałeś hasła?
+                      </button>
                     </div>
                   </>
                 )}
@@ -129,7 +175,7 @@ export default function Auth({ onGoToLanding, authState }) {
                   {isRegistering ? (
                     <span>Posiadasz konto? <span className="text-sky-500 group-hover:underline">Zaloguj się</span></span>
                   ) : (
-                    <span>Nie masz konta? <span className="text-sky-500 group-hover:underline">Zarejestruj się</span></span>
+                    <span>Nie masz konta? <span className="text-sky-500 group-underline">Zarejestruj się</span></span>
                   )}
                 </button>
               </div>

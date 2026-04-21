@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 
 const DEFAULT_FORM_DATA = {
-  firstName: '', lastName: '', age: '25', weight: '75', height: '180',
+  firstName: '', lastName: '', age: '0', weight: '0', height: '0',
   gender: 'Mężczyzna', goal: 'Masa', activityLevel: 'Moderowany',
   experience: 'Początkujący', diet: 'Zbilansowana', equipment: 'Siłownia',
   trainingDays: ['Pon', 'Śr', 'Pią'], bio: '',

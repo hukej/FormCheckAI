@@ -2,8 +2,8 @@ import React from 'react';
 import { Zap, Dumbbell, Timer, Trophy, Flame } from 'lucide-react';
 
 export const ACTIVITIES = [
-  { id: "001", name: 'Przysiady Klasyczne', category: 'Nogi', time: '15m', icon: <Zap size={16} className="text-amber-400"/>, achievement: "Król Przysiadów" },
-  { id: "002", name: 'Pompki Diamentowe', category: 'Klatka', time: '10m', icon: <Dumbbell size={16} className="text-sky-400"/>, achievement: "Twardy jak Diament" },
+  { id: "001", name: 'Przysiady Klasyczne', category: 'Nogi',modelPath: '/models/Air Squat.fbx', time: '15m', icon: <Zap size={16} className="text-amber-400"/>, achievement: "Król Przysiadów" },
+  { id: "002", name: 'Pompki', category: 'Klatka',modelPath: '/models/Push Up.fbx', time: '10m', icon: <Dumbbell size={16} className="text-sky-400"/>, achievement: "Twardy jak Diament" },
   { id: "003", name: 'Plank (Deska)', category: 'Core', time: '5m', icon: <Timer size={16} className="text-emerald-400"/>, achievement: "Łamacz Desek" },
   { id: "004", name: 'Wykroki AI', category: 'Nogi', time: '20m', icon: <Zap size={16} className="text-amber-400"/>, achievement: "Cyber-Wykrok" },
   { id: "005", name: 'Podciąganie', category: 'Plecy', time: '15m', icon: <Trophy size={16} className="text-emerald-400"/>, achievement: "Wspinaczka na Szczyt" },
