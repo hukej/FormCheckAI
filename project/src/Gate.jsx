@@ -3,7 +3,7 @@ import { useAuth } from './hooks';
 import { Auth, LandingPage } from './components';
 import App from './App';
 
-export default function Gate() { 
+export default function Gate() {
   const authState = useAuth();
   const { session, loading, isGuest, setIsGuest } = authState;
   const [showLanding, setShowLanding] = useState(true);
@@ -34,11 +34,11 @@ export default function Gate() {
     return <Auth authState={authState} onGoToLanding={() => setShowLanding(true)} />;
   }
 
-  return <App 
+  return <App
     key={isGuest ? 'guest-app' : (session?.user?.id || 'auth-app')}
-    session={session} 
-    isGuest={isGuest} 
-    onGoToLanding={() => setShowLanding(true)} 
-    onGoToLogin={handleGoToLogin} 
+    session={session}
+    isGuest={isGuest}
+    onGoToLanding={() => setShowLanding(true)}
+    onGoToLogin={handleGoToLogin}
   />;
 }
