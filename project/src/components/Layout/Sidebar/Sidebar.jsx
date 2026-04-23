@@ -17,6 +17,7 @@ const Sidebar = ({
   const navItems = [
     { view: 'list', icon: <LayoutGrid size={22} />, label: 'Biblioteka' },
     { view: 'model', icon: <ActivityIcon size={22} />, label: 'Trening' },
+    { view: 'train', icon: <BrainCircuit size={22} />, label: 'Trenuj AI' },
     { view: 'feedback', icon: <History size={22} />, label: 'Raport', disabled: workoutHistory.length === 0 },
     { view: 'profile', icon: avatarUrl ? <img src={avatarUrl} alt="avatar" className="w-6 h-6 rounded-full object-cover border border-sky-400" /> : <User size={22} />, label: 'Profil' }
   ];

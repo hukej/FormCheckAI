@@ -64,7 +64,7 @@ const DemoSection = () => (
               playsInline 
               className="absolute inset-0 w-full h-full object-cover grayscale-[50%] hover:grayscale-0 transition-all duration-700"
             >
-              <source src="https://videos.pexels.com/video-files/4366663/4366663-uhd_1440_2160_25fps.mp4" type="video/mp4" />
+              <source src="https://assets.mixkit.co/videos/preview/mixkit-girl-doing-squats-in-a-gym-40523-large.mp4" type="video/mp4" />
               Twoja przeglądarka nie wspiera wideo.
             </video>
             

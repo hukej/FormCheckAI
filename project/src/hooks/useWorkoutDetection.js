@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { angleDeg, createSpeakFunction, clamp } from '../utils';
+import { ExerciseModel } from '../ml/ExerciseModel';
 
 // Konfiguracja progów tolerancji (Magic Numbers)
 const CONFIG = {
@@ -35,6 +36,10 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish) => {
   const [countdown, setCountdown] = useState(isGuest ? 10 : 5);
 
   const [qualityAlert, setQualityAlert] = useState(null);
+  const [kneeAngle, setKneeAngle] = useState(180);
+  const [backAngle, setBackAngle] = useState(0);
+  const [isBackPoor, setIsBackPoor] = useState(false);
+  const [isShallow, setIsShallow] = useState(false);
 
   const lastSpokenRef = useRef({});
   const phaseRef = useRef("idle");
@@ -53,10 +58,53 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish) => {
   const smoothKneeAngle = useRef(180);
   const smoothBackAngle = useRef(0);
   const smoothHeadBackAngle = useRef(0);
+  const lastPredictionsRef = useRef({ lean: 0, valgus: 0, heels_up: 0, shallow: 0 });
+
+  // ML Model
+  const mlModelRef = useRef(new ExerciseModel());
+  const [isModelLoaded, setIsModelLoaded] = useState(false);
+  const isModelLoadedRef = useRef(false);
+
+  // Dataset Collection
+  const [isRecordingDataset, setIsRecordingDataset] = useState(false);
+  const isRecordingDatasetRef = useRef(false);
+  const datasetFrames = useRef([]);
+  const datasetLabels = useRef({});
 
   const speak = useCallback((text, type, cooldown = 4000, cancelPrevious = false) => {
     createSpeakFunction(lastSpokenRef)(text, type, cooldown, cancelPrevious);
   }, []);
+
+  const startDataset = useCallback((labels) => {
+    datasetLabels.current = labels;
+    datasetFrames.current = [];
+    isRecordingDatasetRef.current = true;
+    setIsRecordingDataset(true);
+    speak("Rozpoczęto nagrywanie danych", "info", 1000);
+  }, [speak]);
+
+  const stopAndExportDataset = useCallback(() => {
+    isRecordingDatasetRef.current = false;
+    setIsRecordingDataset(false);
+    if (datasetFrames.current.length === 0) {
+      speak("Brak zebranych danych", "error", 1000);
+      return;
+    }
+    
+    const payload = { frames: datasetFrames.current };
+    const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `dataset_${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    speak("Zapisano dane", "info", 1000);
+    datasetFrames.current = [];
+  }, [speak]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -67,10 +115,40 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish) => {
     }
   }, []);
 
+  // Load ML Model
+  useEffect(() => {
+    // Najpierw próbujemy załadować wytrenowany model z serwera
+    mlModelRef.current.load('/models/model.json').then(loaded => {
+      if (loaded) {
+        setIsModelLoaded(true);
+        isModelLoadedRef.current = true;
+      } else {
+        // Jeśli nie ma na serwerze, sprawdź localstorage
+        mlModelRef.current.load().then(l => {
+          setIsModelLoaded(l);
+          isModelLoadedRef.current = l;
+        });
+      }
+    });
+  }, []);
+
   useEffect(() => { stageRef.current = workoutStage; }, [workoutStage]);
 
   useEffect(() => {
     if (isActive) {
+      // Przeładuj model przy każdym rozpoczęciu treningu, aby uwzględnić nowe zmiany
+      mlModelRef.current.load('/models/model.json').then(loaded => {
+        if (loaded) {
+          setIsModelLoaded(true);
+          isModelLoadedRef.current = true;
+        } else {
+          mlModelRef.current.load().then(l => {
+            setIsModelLoaded(l);
+            isModelLoadedRef.current = l;
+          });
+        }
+      });
+
       statsRef.current = { kneeAngles: [], backAngles: [], shallowReps: 0, poorBackFrames: 0, heelLiftFrames: 0, totalFrames: 0 };
       const timer = setTimeout(() => {
         setWorkoutStage('calibrating');
@@ -242,6 +320,9 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish) => {
         const backT = smoothBackAngle.current;
         const headBackA = smoothHeadBackAngle.current;
 
+        setKneeAngle(kneeA);
+        setBackAngle(backT);
+
         const isSquattingPhase = kneeA < CONFIG.SQUAT_PHASE_KNEE_ANGLE;
 
         // --- Detekcja odrywania pięt (Heel-to-Toe Ratio) tylko dla stopy z przodu ---
@@ -257,13 +338,6 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish) => {
           isCurrentlyLifted = true;
         }
         // Usunięto isSquattingPhase, aby błąd był widoczny nawet przy pozycji stojącej (ułatwia testowanie)
-        isCurrentlyLifted = isCurrentlyLifted && (lm[sIdx.heel].visibility || 0) > 0.5;
-
-        if (isCurrentlyLifted) heelLiftCounter.current = Math.min(30, heelLiftCounter.current + 2); 
-        else heelLiftCounter.current = Math.max(0, heelLiftCounter.current - 1);
-        const isHeelLiftedActive = heelLiftCounter.current > CONFIG.HEEL_LIFT_FRAMES_REQUIRED;
-        setIsHeelLifted(isHeelLiftedActive);
-
         const isReady = coreV && anklesV && isSide;
 
         if (stage === 'active') {
@@ -287,33 +361,75 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish) => {
           } else {
             statsRef.current.totalFrames++; statsRef.current.kneeAngles.push(kneeA); statsRef.current.backAngles.push(backT);
 
-            // --- Analiza Techniki ---
-            const isBackRounded = headBackA < CONFIG.BACK_ROUNDED_ANGLE && headBackA > 10;
+            // --- Inteligentne Bramkowanie Danych (Smart Gating) ---
+            if (isRecordingDatasetRef.current && isReady) {
+              const features = ExerciseModel.extractFeatures(lm);
+              if (features) {
+                // Jeśli użytkownik stoi prosto, zapisujemy to jako "Poprawne" (wszystkie błędy false)
+                // Nawet jeśli wybrał tag błędu, bo błąd techniczny dzieje się tylko w ruchu.
+                const effectiveLabels = isSquattingPhase 
+                  ? datasetLabels.current 
+                  : { valgus: false, lean: false, shallow: false, heels_up: false };
+
+                datasetFrames.current.push({
+                  features: features,
+                  labels: effectiveLabels
+                });
+              }
+            }
+
+            // --- Analiza Techniki (PURE ML) ---
+            const preds = lastPredictionsRef.current;
+            let isBackBad = (preds.lean > 0.6 || preds.valgus > 0.6);
+            let currentIsHeelLifted = preds.heels_up > 0.6;
+            let currentIsShallow = preds.shallow > 0.6;
+
+            // Pobierz nową predykcję dla następnej klatki
+            if (isModelLoadedRef.current && !mlModelRef.current.isTraining) {
+              mlModelRef.current.predict(lm).then(p => {
+                if (p) lastPredictionsRef.current = p;
+              }).catch(() => {});
+            } else if (!mlModelRef.current.isTraining) {
+              fetch('/api/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ landmarks: lm })
+              })
+              .then(res => res.json())
+              .then(p => {
+                if (p && !p.error) lastPredictionsRef.current = p;
+              }).catch(() => {});
+            }
+
+            setIsBackPoor(isBackBad && isSquattingPhase);
+            setIsHeelLifted(currentIsHeelLifted);
 
             if (isSquattingPhase) {
-              if (backT > CONFIG.BACK_LEAN_MAX || isBackRounded) {
+              if (isBackBad) {
                 statsRef.current.poorBackFrames++;
-                if (isBackRounded) speak("Nie garb się", "back_round", 6000);
-                else speak("Wyprostuj plecy", "back_error", 6000);
+                speak("Wyprostuj plecy", "back_error", 6000);
               }
-              if (isHeelLiftedActive) { statsRef.current.heelLiftFrames++; speak("Przyklej pięty", "heel_error", 5000); }
+              if (currentIsHeelLifted) {
+                statsRef.current.heelLiftFrames++;
+                speak("Przyklej pięty", "heel_error", 5000);
+              }
             }
 
             const isDeep = kneeA < CONFIG.DEPTH_PERFECT_ANGLE;
-            let bColor = "#22c55e"; let bStat = "STABLE";
-            if (backT >= CONFIG.BACK_LEAN_WARNING || isBackRounded) { bColor = "#f59e0b"; bStat = "WARNING"; }
-            if (backT > CONFIG.BACK_LEAN_MAX || (isBackRounded && headBackA < CONFIG.BACK_ROUNDED_ANGLE - 10)) { bColor = "#ef4444"; bStat = "POOR"; }
+            let bColor = isBackBad ? "#ef4444" : "#22c55e"; 
+            let bStat = isBackBad ? "POOR" : "STABLE";
 
             ctx.font = "bold 14px monospace"; ctx.shadowBlur = 4; ctx.shadowColor = "black";
             ctx.fillStyle = isDeep ? "#22c55e" : "#f59e0b"; ctx.fillText(`${kneeA}° DEPTH`, lm[sIdx.k].x * width + 15, lm[sIdx.k].y * height);
-            ctx.fillStyle = bColor; ctx.fillText(`${backT}° BACK ${isBackRounded ? '(ROUNDED)' : ''}`, lm[sIdx.h].x * width + 15, lm[sIdx.h].y * height);
+            ctx.fillStyle = bColor; ctx.fillText(`${backT}° BACK`, lm[sIdx.h].x * width + 15, lm[sIdx.h].y * height);
 
-            if (isHeelLiftedActive) { ctx.beginPath(); ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 5; ctx.moveTo(lm[sIdx.heel].x * width - 20, lm[sIdx.heel].y * height + 5); ctx.lineTo(lm[sIdx.heel].x * width + 20, lm[sIdx.heel].y * height + 5); ctx.stroke(); }
+            if (currentIsHeelLifted) { ctx.beginPath(); ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 5; ctx.moveTo(lm[sIdx.heel].x * width - 20, lm[sIdx.heel].y * height + 5); ctx.lineTo(lm[sIdx.heel].x * width + 20, lm[sIdx.heel].y * height + 5); ctx.stroke(); }
 
             // --- Liczenie powtórzeń (Ulepszona Maszyna Stanów) ---
             if (kneeA < CONFIG.REP_DOWN_ANGLE && phaseRef.current !== "down") {
               phaseRef.current = "down";
               setPhase("down");
+              setIsShallow(false);
             }
 
             if (kneeA > CONFIG.REP_UP_ANGLE && phaseRef.current === "down") {
@@ -326,12 +442,15 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish) => {
                 const recentAngles = statsRef.current.kneeAngles.slice(-framesToLookBack);
                 const minKneeInRep = recentAngles.length ? Math.min(...recentAngles) : kneeA;
 
-                if (minKneeInRep > CONFIG.DEPTH_WARNING_ANGLE) {
+                if (minKneeInRep > CONFIG.DEPTH_WARNING_ANGLE || currentIsShallow) {
                   statsRef.current.shallowReps++;
                   speak("Zejdź niżej", "depth_error", 5000);
+                  setIsShallow(true);
+                  setTimeout(() => setIsShallow(false), 3000);
                 } else {
                   setRepCount(prev => { repCountRef.current = prev + 1; return prev + 1; });
                   lastRepTime.current = nowTime;
+                  setIsShallow(false);
                 }
               }
             }
@@ -340,8 +459,10 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish) => {
             ctx.fillStyle = "#38bdf8"; ctx.font = "bold 18px monospace"; ctx.fillText(`SQUATS: ${repCountRef.current}`, 25, 35);
             ctx.font = "11px monospace"; ctx.fillStyle = isDeep ? "#22c55e" : "#f59e0b"; ctx.fillText(`DEPTH: ${isDeep ? '✓ PERFECT' : '⚠ GO LOWER'}`, 25, 60);
             ctx.fillStyle = bColor; ctx.fillText(`BACK: ${bStat}`, 25, 80);
-            ctx.fillStyle = isHeelLiftedActive ? "#ef4444" : "#22c55e"; ctx.fillText(`FEET: ${isHeelLiftedActive ? '⚠ HEELS UP!' : '✓ GROUNDED'}`, 25, 100);
+            ctx.fillStyle = currentIsHeelLifted ? "#ef4444" : "#22c55e"; ctx.fillText(`FEET: ${currentIsHeelLifted ? '⚠ HEELS UP!' : '✓ GROUNDED'}`, 25, 100);
             ctx.fillStyle = alertMessage ? "#ef4444" : "#22c55e"; ctx.fillText(`CAM: ${fpsRef.current} FPS`, 25, 120);
+            // Wyświetlamy status modelu ML
+            ctx.fillStyle = isModelLoaded ? "#a855f7" : "#64748b"; ctx.fillText(`AI MODEL: ${isModelLoaded ? 'ACTIVE' : 'HEURISTICS'}`, 25, 140);
             ctx.restore();
           }
         }
@@ -391,6 +512,13 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish) => {
     isHeelLifted,
     timeLeft,
     countdown,
-    qualityAlert
+    qualityAlert,
+    kneeAngle,
+    backAngle,
+    isBackPoor,
+    isShallow,
+    isRecordingDataset,
+    startDataset,
+    stopAndExportDataset
   };
 };

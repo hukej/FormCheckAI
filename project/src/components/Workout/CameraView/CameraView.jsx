@@ -1,5 +1,5 @@
-import React from 'react';
-import { Clock, Timer } from 'lucide-react';
+import React, { useState } from 'react';
+import { Clock, Timer, Download, Database } from 'lucide-react';
 import { useWorkoutDetection } from '../../../hooks';
 
 const CameraView = ({ isActive, isGuest, onWorkoutFinish }) => {
@@ -14,8 +14,35 @@ const CameraView = ({ isActive, isGuest, onWorkoutFinish }) => {
     isHeelLifted,
     timeLeft,
     countdown,
-    qualityAlert
+    qualityAlert,
+    kneeAngle,
+    backAngle,
+    isBackPoor,
+    isShallow,
+    isRecordingDataset,
+    startDataset,
+    stopAndExportDataset
   } = useWorkoutDetection(isActive, isGuest, onWorkoutFinish);
+
+  const [activeLabels, setActiveLabels] = useState({
+    valgus: false,
+    lean: false,
+    shallow: false,
+    heels_up: false
+  });
+
+  const toggleLabel = (label) => {
+    setActiveLabels(prev => ({...prev, [label]: !prev[label]}));
+  };
+
+  const setCorrectLabel = () => {
+    setActiveLabels({
+      valgus: false,
+      lean: false,
+      shallow: false,
+      heels_up: false
+    });
+  };
 
   const formatTime = (s) => `${Math.floor(s/60)}:${(s%60).toString().padStart(2, '0')}`;
 
@@ -24,33 +51,116 @@ const CameraView = ({ isActive, isGuest, onWorkoutFinish }) => {
       <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover opacity-0" playsInline muted />
       <canvas ref={canvasRef} className="w-full h-full object-cover scale-x-[-1]" />
       
+      {/* ⚠️ Massive Quality Alert */}
       {qualityAlert && (
-        <div className="absolute top-8 left-1/2 -translate-x-1/2 z-[60] bg-red-600/90 text-white px-6 py-2 rounded-full font-black text-xs uppercase tracking-widest shadow-2xl backdrop-blur-md animate-pulse">
+        <div className="absolute top-0 inset-x-0 z-[100] bg-red-600/90 text-white px-4 py-3 text-center font-black text-sm uppercase tracking-widest shadow-2xl backdrop-blur-md animate-pulse">
           ⚠️ {qualityAlert}
         </div>
       )}
 
+      {/* 🛑 Massive Technique Error Banners */}
+      <div className="absolute top-20 inset-x-0 flex flex-col items-center gap-4 z-[90] pointer-events-none px-6">
+        {workoutStage === 'active' && isHeelLifted && (
+          <div className="w-full max-w-xl bg-red-600 text-white font-black px-6 py-6 rounded-3xl shadow-[0_0_50px_rgba(220,38,38,0.5)] animate-bounce border-4 border-white text-center">
+            <div className="text-4xl md:text-6xl tracking-tighter uppercase mb-1">PIĘTY W DÓŁ!</div>
+            <div className="text-xs md:text-sm opacity-90 uppercase tracking-[0.2em]">Przyklej pięty do ziemi</div>
+          </div>
+        )}
+        
+        {workoutStage === 'active' && isShallow && (
+          <div className="w-full max-w-xl bg-amber-500 text-slate-950 font-black px-6 py-6 rounded-3xl shadow-[0_0_50px_rgba(245,158,11,0.5)] animate-in slide-in-from-top-10 duration-300 border-4 border-slate-950 text-center">
+            <div className="text-4xl md:text-6xl tracking-tighter uppercase mb-1">ZEJDŹ NIŻEJ!</div>
+            <div className="text-xs md:text-sm opacity-90 uppercase tracking-[0.2em]">Zbyt płytkie powtórzenie</div>
+          </div>
+        )}
+
+        {workoutStage === 'active' && isBackPoor && (
+          <div className="w-full max-w-xl bg-red-600 text-white font-black px-6 py-6 rounded-3xl shadow-[0_0_50px_rgba(220,38,38,0.5)] animate-pulse border-4 border-white text-center">
+            <div className="text-4xl md:text-6xl tracking-tighter uppercase mb-1">PLECY PROSTO!</div>
+            <div className="text-xs md:text-sm opacity-90 uppercase tracking-[0.2em]">Nie garb się i trzymaj pion</div>
+          </div>
+        )}
+      </div>
+
       {workoutStage === 'active' && (
         <>
+          {/* Main Rep Counter & Timer - Enlarged for distance visibility */}
           <div className="absolute top-8 right-8 flex flex-col items-end gap-4 z-50">
-            <div className="bg-slate-900/80 border-2 border-sky-500/50 px-8 py-4 rounded-[2.5rem] backdrop-blur-xl shadow-2xl flex flex-col items-center min-w-[140px]">
-              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-sky-500 mb-1 italic">Reps</span>
-              <div key={repCount} className="text-6xl font-black italic text-white animate-in zoom-in duration-300">{repCount}</div>
+            <div className="bg-slate-900/90 border-2 border-sky-500/50 px-8 py-6 rounded-[3rem] backdrop-blur-xl shadow-2xl flex flex-col items-center min-w-[160px] md:min-w-[200px]">
+              <span className="text-[12px] md:text-sm font-black uppercase tracking-[0.4em] text-sky-500 mb-1 italic">Reps</span>
+              <div key={repCount} className="text-7xl md:text-9xl font-black italic text-white animate-in zoom-in duration-300 drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">{repCount}</div>
             </div>
-            <div className="bg-slate-900/80 border border-slate-800 px-6 py-3 rounded-2xl backdrop-blur-xl flex items-center gap-3">
-              <Clock size={16} className="text-sky-500" />
-              <span className="text-xl font-black font-mono text-white tracking-widest">{formatTime(timeLeft)}</span>
+            <div className="bg-slate-900/90 border border-slate-800 px-6 py-4 rounded-2xl backdrop-blur-xl flex items-center gap-3">
+              <Clock size={20} className="text-sky-500" />
+              <span className="text-2xl md:text-3xl font-black font-mono text-white tracking-widest">{formatTime(timeLeft)}</span>
             </div>
           </div>
+
+          {/* Real-time Angle Metrics - More visible DOM elements instead of canvas text */}
+          <div className="absolute bottom-8 left-8 z-50 flex flex-col gap-2">
+            <div className="bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-xl border border-slate-800 flex items-center gap-4">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">KNEE</span>
+                <span className={`text-xl font-black ${kneeAngle < 90 ? 'text-green-500' : 'text-sky-400'}`}>{kneeAngle}°</span>
+              </div>
+              <div className="h-8 w-px bg-slate-800" />
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">BACK</span>
+                <span className={`text-xl font-black ${isBackPoor ? 'text-red-500' : 'text-sky-400'}`}>{backAngle}°</span>
+              </div>
+            </div>
+          </div>
+
           {isGuest && (
             <div className="absolute top-8 left-8 z-50">
-              <div className="bg-amber-500 text-slate-950 px-4 py-1.5 rounded-full font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center gap-2">
-                <Timer size={12} /> Tryb Demo
+              <div className="bg-amber-500 text-slate-950 px-5 py-2 rounded-full font-black text-xs uppercase tracking-widest shadow-lg flex items-center gap-2">
+                <Timer size={14} /> Tryb Demo
               </div>
             </div>
           )}
+
+          {/* Dataset Controls - Visible during active workout */}
+          <div className="absolute top-8 left-8 z-50 flex flex-col gap-2">
+             <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-2xl backdrop-blur-xl flex flex-col gap-3">
+               <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Dane Treningowe ML</span>
+                <div className="grid grid-cols-2 gap-2 mb-1">
+                  <button 
+                    onClick={setCorrectLabel}
+                    className={`col-span-2 text-[9px] font-bold uppercase py-1.5 px-2 rounded-lg border transition-all ${Object.values(activeLabels).every(v => !v) ? 'bg-green-500/20 text-green-400 border-green-500/50' : 'bg-slate-800/30 text-slate-500 border-slate-700 hover:bg-slate-800'}`}
+                  >
+                    {Object.values(activeLabels).every(v => !v) ? '✓ POPRAWNE (AKTYWNE)' : 'USTAW JAKO POPRAWNE'}
+                  </button>
+                  {Object.keys(activeLabels).map(l => (
+                    <button 
+                      key={l}
+                      onClick={() => toggleLabel(l)}
+                      className={`text-[9px] font-bold uppercase py-1 px-2 rounded-lg border transition-all ${activeLabels[l] ? 'bg-red-500/20 text-red-400 border-red-500/50' : 'bg-slate-800/50 text-slate-500 border-slate-700'}`}
+                    >
+                      {l} {activeLabels[l] && '●'}
+                    </button>
+                  ))}
+                </div>
+               {isRecordingDataset ? (
+                 <button 
+                   onClick={stopAndExportDataset}
+                   className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase py-2 rounded-xl flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-all"
+                 >
+                   <Download size={14} /> Zapisz JSON
+                 </button>
+               ) : (
+                 <button 
+                   onClick={() => startDataset(activeLabels)}
+                   className="w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs uppercase py-2 rounded-xl flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(14,165,233,0.3)] transition-all"
+                 >
+                   <Database size={14} /> Nagrywaj
+                 </button>
+               )}
+             </div>
+          </div>
+
+          {/* Phase Indicator */}
           <div className="absolute bottom-10 left-1/2 -translate-x-1/2">
-             <div className={`px-8 py-3 rounded-full font-black uppercase tracking-[0.3em] text-[10px] shadow-xl ${phase === 'down' ? 'bg-sky-500 text-slate-950 animate-pulse' : 'bg-slate-900/90 text-slate-400'}`}>
+             <div className={`px-10 py-4 rounded-full font-black uppercase tracking-[0.3em] text-xs md:text-sm shadow-2xl transition-all duration-300 ${phase === 'down' ? 'bg-sky-500 text-slate-950 animate-pulse scale-110' : 'bg-slate-900/95 text-slate-400'}`}>
                 {phase === 'down' ? '↓↓ DÓŁ ↓↓' : '↑↑ GÓRA ↑↑'}
              </div>
           </div>
@@ -74,9 +184,6 @@ const CameraView = ({ isActive, isGuest, onWorkoutFinish }) => {
               {countdown}
             </div>
           </div>
-        )}
-        {workoutStage === 'active' && isHeelLifted && (
-          <div className="absolute bottom-32 bg-red-600 text-white font-black px-10 py-4 rounded-2xl shadow-2xl animate-bounce border-4 border-white uppercase tracking-tighter">PRZYKLEJ PIĘTY DO ZIEMI!</div>
         )}
       </div>
     </div>

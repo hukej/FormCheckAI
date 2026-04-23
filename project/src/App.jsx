@@ -23,6 +23,7 @@ import {
 // Feature Views
 import FeedbackPage from './components/Feedback';
 import UserProfile from './components/Profile';
+import ModelTrainer from './components/Trainer';
 
 /**
  * App Component
@@ -67,6 +68,7 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest }) {
         <Header 
           currentView={currentView}
           setShowAchievements={setShowAchievements}
+          className={currentView === 'model' && active ? 'hidden' : ''}
         />
 
         <div className="flex-grow">
@@ -83,6 +85,9 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest }) {
                 setCurrentView('model'); 
               }} 
             />
+          ) : currentView === 'train' ? (
+            /* Model AI Training view */
+            <ModelTrainer onBack={() => setCurrentView('list')} />
           ) : currentView === 'profile' ? (
             /* User profile and settings view */
             <UserProfile 
@@ -97,11 +102,13 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest }) {
             />
           ) : (
             /* Dashboard view split between Library and 3D Atlas / Camera */
-            <div className="h-full flex flex-col xl:grid xl:grid-cols-2 gap-6">
+            <div className={`h-full flex flex-col ${currentView === 'model' && active ? 'gap-0' : 'xl:grid xl:grid-cols-2 gap-6'}`}>
               
               {/* Left Column: Activity List or Current Exercise Info */}
-              <section className="flex flex-col gap-4 min-h-[400px] order-2 xl:order-1">
-                <div className="flex-grow bg-slate-900/40 rounded-[2rem] border border-slate-800 overflow-hidden relative shadow-inner">
+              {!(currentView === 'model' && active) && (
+                <section className="flex flex-col gap-4 min-h-[400px] order-2 xl:order-1 relative">
+                  <div className="flex-grow bg-slate-900/40 rounded-[2rem] border border-slate-800 overflow-hidden relative shadow-inner">
+
                   {currentView === 'model' ? (
                     /* Display selected exercise info when in training mode */
                     <div className="w-full h-full flex flex-col bg-slate-900/40 rounded-3xl border border-slate-800/50 shadow-inner overflow-hidden">
@@ -156,9 +163,11 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest }) {
                   )}
                 </div>
               </section>
+              )}
 
               {/* Right Column: Interactive 3D Model or Live Camera Feed */}
-              <section className="flex flex-col gap-4 min-h-[450px] order-1 xl:order-2">
+              <section className={`flex flex-col gap-4 ${currentView === 'model' && active ? 'flex-grow min-h-[0px]' : 'min-h-[450px]'} order-1 xl:order-2 relative`}>
+
                 <div className="flex-grow rounded-[2rem] border border-slate-800 overflow-hidden relative shadow-2xl bg-slate-950">
                   {currentView === 'list' ? (
                     /* 3D Muscle Atlas for category selection */
