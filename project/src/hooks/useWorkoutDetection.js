@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { angleDeg, createSpeakFunction, clamp } from '../utils';
 import { ExerciseModel } from '../ml/ExerciseModel';
+import { supabase } from '../supabaseClient';
 
 // Konfiguracja progów tolerancji (Magic Numbers)
 const CONFIG = {
@@ -83,7 +84,7 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish) => {
     speak("Rozpoczęto nagrywanie danych", "info", 1000);
   }, [speak]);
 
-  const stopAndExportDataset = useCallback(() => {
+  const stopAndExportDataset = useCallback(async () => {
     isRecordingDatasetRef.current = false;
     setIsRecordingDataset(false);
     if (datasetFrames.current.length === 0) {
@@ -91,6 +92,7 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish) => {
       return;
     }
     
+    // 1. Zapis lokalny (Download)
     const payload = { frames: datasetFrames.current };
     const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -102,7 +104,21 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish) => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
-    speak("Zapisano dane", "info", 1000);
+    // 2. Synchronizacja z chmurą (Supabase) - NOWOŚĆ
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from('training_data').insert({
+        payload: payload,
+        user_id: user?.id || 'guest',
+        created_at: new Date().toISOString()
+      });
+      if (error) throw error;
+      speak("Zapisano i zsynchronizowano dane", "info", 1000);
+    } catch (err) {
+      console.error("Błąd synchronizacji z Supabase:", err);
+      speak("Zapisano lokalnie (błąd chmury)", "warning", 1000);
+    }
+
     datasetFrames.current = [];
   }, [speak]);
 
@@ -117,19 +133,51 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish) => {
 
   // Load ML Model
   useEffect(() => {
-    // Najpierw próbujemy załadować wytrenowany model z serwera
-    mlModelRef.current.load('/models/model.json').then(loaded => {
-      if (loaded) {
+    const loadModel = async () => {
+      console.log("Inicjalizacja ładowania modelu...");
+      
+      // 1. Próba załadowania z Supabase Storage (Najnowszy wspólny model)
+      const storageUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/models/model.json`;
+      
+      try {
+        // Sprawdzamy czy plik istnieje prostym fetchem
+        const checkRes = await fetch(storageUrl, { method: 'GET', range: 'bytes=0-0' }); 
+        if (checkRes.ok || checkRes.status === 206) {
+          console.log("Znaleziono wspólny model w chmurze, pobieranie...");
+          const loaded = await mlModelRef.current.load(storageUrl);
+          if (loaded) {
+            console.log("✅ SUKCES: Załadowano wspólny model z Supabase Storage");
+            setIsModelLoaded(true);
+            isModelLoadedRef.current = true;
+            return;
+          }
+        }
+      } catch (e) { 
+        console.warn("Błąd podczas próby pobrania modelu z chmury (CORS? Brak pliku?):", e.message); 
+      }
+
+      // 2. Próba załadowania z serwera lokalnego
+      try {
+        const serverLoaded = await mlModelRef.current.load('/models/model.json');
+        if (serverLoaded) {
+          console.log("✅ Załadowano model z serwera lokalnego");
+          setIsModelLoaded(true);
+          isModelLoadedRef.current = true;
+          return;
+        }
+      } catch (e) { console.log("Brak modelu na serwerze lokalnym."); }
+
+      // 3. Sprawdź localstorage
+      const localLoaded = await mlModelRef.current.load();
+      if (localLoaded) {
+        console.log("✅ Załadowano model z LocalStorage");
         setIsModelLoaded(true);
         isModelLoadedRef.current = true;
       } else {
-        // Jeśli nie ma na serwerze, sprawdź localstorage
-        mlModelRef.current.load().then(l => {
-          setIsModelLoaded(l);
-          isModelLoadedRef.current = l;
-        });
+        console.log("ℹ️ Nie znaleziono żadnego modelu AI. Używam heurystyki.");
       }
-    });
+    };
+    loadModel();
   }, []);
 
   useEffect(() => { stageRef.current = workoutStage; }, [workoutStage]);

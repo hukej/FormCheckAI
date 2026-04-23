@@ -59,7 +59,23 @@ app.post('/api/train', async (req, res) => {
     await serverModel.model.save(`file://${modelsDir}`);
     fs.writeFileSync(LABELS_PATH, JSON.stringify(serverModel.labels));
 
-    res.json({ success: true, message: 'Model wytrenowany i zapisany na serwerze.' });
+    // --- NOWOŚĆ: Automatyczny Backup na serwerze ---
+    try {
+      const backupDir = path.join(__dirname, 'backups', `model_backup_${new Date().toISOString().replace(/[:.]/g, '-')}`);
+      if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+      
+      // Kopiujemy wszystkie pliki modelu (json, bin, labels)
+      const filesToBackup = fs.readdirSync(modelsDir);
+      for (const file of filesToBackup) {
+        fs.copyFileSync(path.join(modelsDir, file), path.join(backupDir, file));
+      }
+      console.log(`Pomyślnie utworzono backup: ${backupDir}`);
+    } catch (backupErr) {
+      console.error("Błąd podczas tworzenia backupu:", backupErr);
+      // Nie przerywamy głównego procesu, jeśli tylko backup się nie udał
+    }
+
+    res.json({ success: true, message: 'Model wytrenowany, zapisany i zarchiwizowany na serwerze.' });
   } catch (err) {
     console.error("Błąd treningu na serwerze:", err);
     res.status(500).json({ error: err.message });

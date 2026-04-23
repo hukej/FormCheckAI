@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ExerciseModel } from '../../ml/ExerciseModel';
+import { supabase } from '../../supabaseClient';
+import { Database, CloudUpload, CloudDownload, Trash2 } from 'lucide-react';
 
 export default function ModelTrainer({ onBack }) {
   const [model] = useState(() => new ExerciseModel());
@@ -7,6 +9,12 @@ export default function ModelTrainer({ onBack }) {
   const [datasetFiles, setDatasetFiles] = useState([]);
   const [isTraining, setIsTraining] = useState(false);
   const [progress, setProgress] = useState(0);
+
+  // Helper to handle both File objects and cloud content
+  const getFileText = async (file) => {
+    if (file.content) return JSON.stringify(file.content);
+    return await file.text();
+  };
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -25,7 +33,7 @@ export default function ModelTrainer({ onBack }) {
     try {
       let fullDataset = [];
       for (let file of datasetFiles) {
-        const text = await file.text();
+        const text = await getFileText(file);
         const json = JSON.parse(text);
         if (json.frames) {
           fullDataset = fullDataset.concat(json.frames);
@@ -67,11 +75,120 @@ export default function ModelTrainer({ onBack }) {
     }
   };
 
+  const loadFromSupabase = async () => {
+    setStatus("Pobieranie danych z Supabase...");
+    try {
+      const { data, error } = await supabase.from('training_data').select('payload');
+      if (error) {
+        console.error("Błąd zapytania Supabase:", error);
+        throw new Error(`Błąd bazy: ${error.message}. Sprawdź czy tabela 'training_data' istnieje i ma wyłączone RLS lub dodane polityki.`);
+      }
+      
+      if (!data || data.length === 0) {
+        setStatus("Baza danych jest pusta (tabela 'training_data').");
+        alert("Brak danych w chmurze. Najpierw nagraj trening lub wyślij pliki lokalne.");
+        return;
+      }
+      
+      const files = data.map((item, idx) => ({
+        name: `Cloud_Entry_${idx + 1}`,
+        content: item.payload
+      }));
+      
+      setDatasetFiles(prev => [...prev, ...files]);
+      setStatus(`Pobrano ${data.length} zestawów danych z chmury.`);
+    } catch (err) {
+      console.error(err);
+      setStatus(`Błąd pobierania: ${err.message}`);
+    }
+  };
+
+  const uploadLocalToSupabase = async () => {
+    if (datasetFiles.length === 0) return;
+    setStatus("Wysyłanie plików lokalnych do bazy...");
+    let successCount = 0;
+    let lastError = null;
+    
+    try {
+      for (let file of datasetFiles) {
+        if (file.content) continue; 
+        
+        const text = await file.text();
+        const json = JSON.parse(text);
+        
+        const { error } = await supabase.from('training_data').insert({
+          payload: json,
+          created_at: new Date().toISOString()
+        });
+        
+        if (!error) {
+          successCount++;
+        } else {
+          console.error("Błąd zapisu pliku:", error);
+          lastError = error.message;
+        }
+      }
+      
+      if (successCount > 0) {
+        setStatus(`Pomyślnie wysłano ${successCount} plików do bazy danych.`);
+        alert(`Zsynchronizowano ${successCount} plików z chmurą!`);
+      } else if (lastError) {
+        setStatus(`Błąd bazy: ${lastError}`);
+        alert(`Nie udało się wysłać plików. Błąd Supabase: ${lastError}`);
+      } else {
+        setStatus("Nie znaleziono nowych plików lokalnych do wysłania.");
+      }
+    } catch (err) {
+      console.error(err);
+      setStatus(`Błąd krytyczny: ${err.message}`);
+    }
+  };
+
+  const saveToSupabaseStorage = async () => {
+    if (!model.model) return;
+    setStatus("Przygotowywanie plików modelu...");
+    
+    try {
+      // 1. Zapisujemy etykiety
+      const labelsBlob = new Blob([JSON.stringify(model.labels)], { type: 'application/json' });
+      await supabase.storage.from('models').upload('labels.json', labelsBlob, { upsert: true });
+
+      // 2. Wykorzystujemy IOHandler do przechwycenia plików modelu
+      await model.model.save({
+        save: async (artifacts) => {
+          // model.json
+          const modelJson = JSON.stringify({
+            modelTopology: artifacts.modelTopology,
+            format: artifacts.format,
+            generatedBy: artifacts.generatedBy,
+            convertedBy: artifacts.convertedBy,
+            weightsManifest: artifacts.weightsManifest
+          });
+          const modelBlob = new Blob([modelJson], { type: 'application/json' });
+          await supabase.storage.from('models').upload('model.json', modelBlob, { upsert: true });
+
+          // weights.bin
+          const weightsBlob = new Blob([artifacts.weightData], { type: 'application/octet-stream' });
+          await supabase.storage.from('models').upload('weights.bin', weightsBlob, { upsert: true });
+
+          return { modelArtifactsInfo: { dateSaved: new Date(), modelTopologyType: 'JSON' } };
+        }
+      });
+
+      setStatus("Model został pomyślnie WYSŁANY do Supabase Storage!");
+    } catch (err) {
+      console.error(err);
+      setStatus(`Błąd wysyłania: ${err.message}`);
+    }
+  };
+
   const trainOnServer = async () => {
+    // Pozostawiamy dla osób z serwerem Node.js
     if (datasetFiles.length === 0) {
       alert("Proszę wgrać przynajmniej jeden plik JSON z danymi.");
       return;
     }
+    // ... reszta kodu trainOnServer (bez zmian)
 
     setIsTraining(true);
     setStatus("Wysyłanie danych na serwer...");
@@ -79,7 +196,7 @@ export default function ModelTrainer({ onBack }) {
     try {
       let fullDataset = [];
       for (let file of datasetFiles) {
-        const text = await file.text();
+        const text = await getFileText(file);
         const json = JSON.parse(text);
         if (json.frames) fullDataset = fullDataset.concat(json.frames);
       }
@@ -92,7 +209,7 @@ export default function ModelTrainer({ onBack }) {
 
       const result = await response.json();
       if (result.success) {
-        setStatus("Model wytrenowany i zapisany na SERWERZE.");
+        setStatus("Model wytrenowany, zapisany i ZARCHIWIZOWANY na serwerze.");
       } else {
         throw new Error(result.error || "Błąd serwera");
       }
@@ -153,30 +270,49 @@ export default function ModelTrainer({ onBack }) {
         )}
       </div>
 
-      <div className="flex flex-col gap-4">
-        <button 
-          onClick={startTraining}
-          disabled={isTraining || datasetFiles.length === 0}
-          className={`py-4 rounded-xl font-black uppercase tracking-widest transition-all ${
-            isTraining || datasetFiles.length === 0 
-              ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-              : 'bg-green-500 hover:bg-green-400 text-slate-950 shadow-[0_0_20px_rgba(34,197,94,0.3)]'
-          }`}
-        >
-          {isTraining ? 'Trening w toku...' : 'Uruchom Trenowanie (Lokalnie)'}
-        </button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button 
+            onClick={startTraining}
+            disabled={isTraining || datasetFiles.length === 0}
+            className={`py-4 rounded-xl font-black uppercase tracking-widest transition-all ${
+              isTraining || datasetFiles.length === 0 
+                ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                : 'bg-green-500 hover:bg-green-400 text-slate-950 shadow-[0_0_20px_rgba(34,197,94,0.3)]'
+            }`}
+          >
+            {isTraining ? 'Trening...' : '1. Trenuj Lokalnie'}
+          </button>
 
-        <button 
-          onClick={trainOnServer}
-          disabled={isTraining || datasetFiles.length === 0}
-          className={`py-4 rounded-xl font-black uppercase tracking-widest transition-all ${
-            isTraining || datasetFiles.length === 0 
-              ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-              : 'bg-purple-600 hover:bg-purple-500 text-white shadow-[0_0_20px_rgba(147,51,234,0.3)]'
-          }`}
-        >
-          {isTraining ? 'Wysyłanie...' : 'Uruchom Trenowanie na Serwerze'}
-        </button>
+          <button 
+            onClick={saveToSupabaseStorage}
+            disabled={isTraining || !model.model}
+            className={`py-4 rounded-xl font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+              isTraining || !model.model
+                ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                : 'bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-[0_0_20px_rgba(14,165,233,0.3)]'
+            }`}
+          >
+            <CloudUpload size={18} /> 2. Wyślij do Chmury
+          </button>
+        </div>
+
+        <div className="h-px bg-slate-800 my-2"></div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button 
+            onClick={loadFromSupabase}
+            className="py-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 border border-slate-700"
+          >
+            <CloudDownload size={14} /> Pobierz z bazy
+          </button>
+          <button 
+            onClick={uploadLocalToSupabase}
+            disabled={datasetFiles.length === 0}
+            className="py-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-400 font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 border border-slate-700 disabled:opacity-50"
+          >
+            <Database size={14} /> Wyślij lokalne do bazy
+          </button>
+        </div>
 
         {isTraining && (
           <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
@@ -187,7 +323,6 @@ export default function ModelTrainer({ onBack }) {
         <div className="text-sm font-mono p-4 bg-slate-950 rounded-xl border border-slate-800 text-sky-400">
           STATUS: {status}
         </div>
-      </div>
 
       <button 
         onClick={resetModel}

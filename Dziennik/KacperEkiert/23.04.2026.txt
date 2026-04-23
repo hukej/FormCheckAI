@@ -1,0 +1,1 @@
+Stworzyłem model do analizy przysiadu. Połączyłem i zaimplementowałem wszystko. Działa
