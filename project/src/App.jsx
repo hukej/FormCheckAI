@@ -23,7 +23,6 @@ import {
 // Feature Views
 import FeedbackPage from './components/Feedback';
 import UserProfile from './components/Profile';
-import ModelTrainer from './components/Trainer';
 import { HomeView } from './components/Home';
 
 /**
@@ -103,8 +102,6 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest, session }) {
                 setCurrentView('list');
               }}
             />
-          ) : currentView === 'train' ? (
-            <ModelTrainer onBack={() => setCurrentView('list')} />
           ) : currentView === 'profile' ? (
             <UserProfile 
               avatarUrl={avatarUrl} 
