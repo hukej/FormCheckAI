@@ -12,7 +12,7 @@ const GymActivitiesList = ({ onSelectActivity, filter, setFilter }) => {
   return (
     <div className="h-full flex flex-col p-6 overflow-hidden">
       {/* Category Filter */}
-      <div className="flex gap-2 overflow-x-auto pb-6 scrollbar-hide shrink-0">
+      <div className="flex gap-2 flex-wrap pb-6 shrink-0">
         {categories.map(cat => (
           <button
             key={cat}
@@ -25,7 +25,7 @@ const GymActivitiesList = ({ onSelectActivity, filter, setFilter }) => {
       </div>
 
       {/* Activities Grid */}
-      <div className="flex-grow overflow-y-auto pr-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 content-start pb-10">
+      <div className="flex-grow overflow-y-auto pr-2 grid grid-cols-1 md:grid-cols-2 gap-4 content-start pb-10">
         {filteredActivities.map((activity) => {
           const isLocked = !activity.exerciseId;
           

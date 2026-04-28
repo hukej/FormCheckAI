@@ -24,13 +24,14 @@ import {
 import FeedbackPage from './components/Feedback';
 import UserProfile from './components/Profile';
 import ModelTrainer from './components/Trainer';
+import { HomeView } from './components/Home';
 
 /**
  * App Component
  * Core container managing application layout, routing between views, 
  * and orchestrating workout analysis state.
  */
-export default function App({ onGoToLanding, onGoToLogin, isGuest }) {
+export default function App({ onGoToLanding, onGoToLogin, isGuest, session }) {
   // Extract state management to a specialized hook to keep UI clean
   const {
     isSidebarOpen, setIsSidebarOpen,
@@ -51,27 +52,31 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest }) {
     <div className="h-[100dvh] w-screen bg-slate-950 text-blue-100 flex overflow-hidden relative font-sans">
       
       {/* 1. Primary Navigation Sidebar */}
-      <Sidebar 
-        isSidebarOpen={isSidebarOpen}
-        setIsSidebarOpen={setIsSidebarOpen}
-        currentView={currentView}
-        setCurrentView={setCurrentView}
-        workoutHistory={workoutHistory}
-        avatarUrl={avatarUrl}
-        onGoToLanding={onGoToLanding}
-      />
+      {currentView !== 'home' && (
+        <Sidebar 
+          isSidebarOpen={isSidebarOpen}
+          setIsSidebarOpen={setIsSidebarOpen}
+          currentView={currentView}
+          setCurrentView={setCurrentView}
+          workoutHistory={workoutHistory}
+          avatarUrl={avatarUrl}
+          onGoToLanding={onGoToLanding}
+        />
+      )}
 
       {/* 2. Main Application Content Area */}
-      <main className="flex-grow flex flex-col p-4 md:p-8 overflow-y-auto relative text-blue-100">
+      <main className={`flex-grow min-w-0 flex flex-col overflow-y-auto relative text-blue-100 ${currentView === 'home' ? 'p-0' : 'p-4 md:p-8'}`}>
         
         {/* Dynamic Header responding to current view */}
-        <Header 
-          currentView={currentView}
-          setShowAchievements={setShowAchievements}
-          className={currentView === 'model' && active ? 'hidden' : ''}
-        />
+        {currentView !== 'home' && (
+          <Header 
+            currentView={currentView}
+            setShowAchievements={setShowAchievements}
+            className={currentView === 'model' && active ? 'hidden' : ''}
+          />
+        )}
 
-        <div className="flex-grow">
+        <div className="flex-grow flex flex-col min-h-0">
           {/* Main Routing Logic */}
           {currentView === 'feedback' ? (
             /* Post-workout analysis view */
@@ -84,6 +89,15 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest }) {
                 setSelectedEx(ex); 
                 setCurrentView('model'); 
               }} 
+            />
+          ) : currentView === 'home' ? (
+            /* Dashboard Home with 3D model and quick navigation */
+            <HomeView 
+              userName={session?.user?.user_metadata?.full_name || session?.user?.email?.split('@')[0]} 
+              onSelectCategory={(cat) => {
+                setMuscleFilter(cat);
+                setCurrentView('list');
+              }}
             />
           ) : currentView === 'train' ? (
             /* Model AI Training view */
@@ -102,12 +116,12 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest }) {
             />
           ) : (
             /* Dashboard view split between Library and 3D Atlas / Camera */
-            <div className={`h-full flex flex-col ${currentView === 'model' && active ? 'gap-0' : 'xl:grid xl:grid-cols-2 gap-6'}`}>
+            <div className={`h-full flex flex-col min-h-0 ${currentView === 'model' && active ? 'gap-0' : 'xl:grid xl:grid-cols-2 gap-6'}`}>
               
               {/* Left Column: Activity List or Current Exercise Info */}
               {!(currentView === 'model' && active) && (
-                <section className="flex flex-col gap-4 min-h-[400px] order-2 xl:order-1 relative">
-                  <div className="flex-grow bg-slate-900/40 rounded-[2rem] border border-slate-800 overflow-hidden relative shadow-inner">
+                <section className="flex flex-col gap-4 min-h-[400px] order-2 xl:order-1 relative min-h-0">
+                  <div className="flex-grow bg-slate-900/40 rounded-[2rem] border border-slate-800 overflow-hidden relative shadow-inner min-h-0">
 
                   {currentView === 'model' ? (
                     /* Display selected exercise info when in training mode */
@@ -166,9 +180,9 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest }) {
               )}
 
               {/* Right Column: Interactive 3D Model or Live Camera Feed */}
-              <section className={`flex flex-col gap-4 ${currentView === 'model' && active ? 'flex-grow min-h-[0px]' : 'min-h-[450px]'} order-1 xl:order-2 relative`}>
+              <section className={`flex flex-col gap-4 ${currentView === 'model' && active ? 'flex-grow min-h-[0px]' : 'min-h-[240px] md:min-h-[450px]'} order-1 xl:order-2 relative min-h-0`}>
 
-                <div className="flex-grow rounded-[2rem] border border-slate-800 overflow-hidden relative shadow-2xl bg-slate-950">
+                <div className="flex-grow rounded-[2rem] border border-slate-800 overflow-hidden relative shadow-2xl bg-slate-950 min-h-0">
                   {currentView === 'list' ? (
                     /* 3D Muscle Atlas for category selection */
                     <InteractiveModel 
