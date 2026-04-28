@@ -4,3 +4,4 @@ export { default as FeedbackPage } from './Feedback';
 export { default as UserProfile } from './Profile';
 export * from './Auth';
 export { default as LandingPage } from './Landing';
+export * from './Home';

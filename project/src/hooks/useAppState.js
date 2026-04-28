@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 export const useAppState = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showAchievements, setShowAchievements] = useState(false);
-  const [currentView, setCurrentView] = useState('list'); 
+  const [currentView, setCurrentView] = useState('home'); 
   const [muscleFilter, setMuscleFilter] = useState('Wszystkie');
   const [selectedEx, setSelectedEx] = useState({ name: "Przysiady Klasyczne", id: "001", category: "Nogi" });
   const [active, setActive] = useState(false);
