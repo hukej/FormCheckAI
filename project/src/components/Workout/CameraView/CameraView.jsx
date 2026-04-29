@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
-import { Clock, Timer, Download, Database } from 'lucide-react';
+import { Clock, Timer } from 'lucide-react';
 import { useWorkoutDetection } from '../../../hooks';
 import { EXERCISES } from '../../../config/exercises';
 
 const CameraView = ({ isActive, isGuest, onWorkoutFinish, selectedEx }) => {
-  const [selectedExercise, setSelectedExercise] = useState(selectedEx?.exerciseId || 'squat');
-
   const {
     videoRef,
     canvasRef,
@@ -21,30 +19,8 @@ const CameraView = ({ isActive, isGuest, onWorkoutFinish, selectedEx }) => {
     kneeAngle,
     backAngle,
     isBackPoor,
-    isShallow,
-    isRecordingDataset,
-    startDataset,
-    stopAndExportDataset
-  } = useWorkoutDetection(isActive, isGuest, onWorkoutFinish, selectedExercise);
-
-  const initialLabels = EXERCISES['squat'].labels.reduce((acc, label) => ({ ...acc, [label]: false }), {});
-  const [activeLabels, setActiveLabels] = useState(initialLabels);
-
-  const handleExerciseChange = (e) => {
-    const newExercise = e.target.value;
-    setSelectedExercise(newExercise);
-    const newLabels = EXERCISES[newExercise].labels.reduce((acc, label) => ({ ...acc, [label]: false }), {});
-    setActiveLabels(newLabels);
-  };
-
-  const toggleLabel = (label) => {
-    setActiveLabels(prev => ({...prev, [label]: !prev[label]}));
-  };
-
-  const setCorrectLabel = () => {
-    const defaultLabels = EXERCISES[selectedExercise].labels.reduce((acc, label) => ({ ...acc, [label]: false }), {});
-    setActiveLabels(defaultLabels);
-  };
+    isShallow
+  } = useWorkoutDetection(isActive, isGuest, onWorkoutFinish, selectedEx?.exerciseId || 'squat');
 
   const formatTime = (s) => `${Math.floor(s/60)}:${(s%60).toString().padStart(2, '0')}`;
 
@@ -121,56 +97,7 @@ const CameraView = ({ isActive, isGuest, onWorkoutFinish, selectedEx }) => {
             </div>
           )}
 
-          {/* Dataset Controls - Visible during active workout */}
-          <div className="absolute top-8 left-8 z-50 flex flex-col gap-2">
-           <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-2xl backdrop-blur-xl flex flex-col gap-3">
-               <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Dane Treningowe ML</span>
-                
-                <select 
-                  value={selectedExercise} 
-                  onChange={handleExerciseChange}
-                  disabled={isRecordingDataset}
-                  className="bg-slate-800 text-xs text-white uppercase font-bold py-1.5 px-2 rounded-lg border border-slate-700 outline-none w-full"
-                >
-                  {Object.values(EXERCISES).map(ex => (
-                    <option key={ex.id} value={ex.id}>{ex.name}</option>
-                  ))}
-                </select>
 
-                <div className="grid grid-cols-2 gap-2 mb-1">
-                  <button 
-                    onClick={setCorrectLabel}
-                    className={`col-span-2 text-[9px] font-bold uppercase py-1.5 px-2 rounded-lg border transition-all ${Object.values(activeLabels).every(v => !v) ? 'bg-green-500/20 text-green-400 border-green-500/50' : 'bg-slate-800/30 text-slate-500 border-slate-700 hover:bg-slate-800'}`}
-                  >
-                    {Object.values(activeLabels).every(v => !v) ? '✓ POPRAWNE (AKTYWNE)' : 'USTAW JAKO POPRAWNE'}
-                  </button>
-                  {Object.keys(activeLabels).map(l => (
-                    <button 
-                      key={l}
-                      onClick={() => toggleLabel(l)}
-                      className={`text-[9px] font-bold uppercase py-1 px-2 rounded-lg border transition-all ${activeLabels[l] ? 'bg-red-500/20 text-red-400 border-red-500/50' : 'bg-slate-800/50 text-slate-500 border-slate-700'}`}
-                    >
-                      {l} {activeLabels[l] && '●'}
-                    </button>
-                  ))}
-                </div>
-               {isRecordingDataset ? (
-                 <button 
-                   onClick={() => stopAndExportDataset(selectedExercise)}
-                   className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase py-2 rounded-xl flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-all"
-                 >
-                   <Download size={14} /> Zapisz JSON
-                 </button>
-               ) : (
-                 <button 
-                   onClick={() => startDataset(activeLabels, selectedExercise)}
-                   className="w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs uppercase py-2 rounded-xl flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(14,165,233,0.3)] transition-all"
-                 >
-                   <Database size={14} /> Nagrywaj
-                 </button>
-               )}
-             </div>
-          </div>
 
           {/* Phase Indicator */}
           <div className="absolute bottom-10 left-1/2 -translate-x-1/2">
@@ -180,7 +107,7 @@ const CameraView = ({ isActive, isGuest, onWorkoutFinish, selectedEx }) => {
           </div>
         </>
       )}
-      <div className="absolute inset-0 pointer-events-none z-50 flex items-center justify-center p-6 text-center">
+      <div className="absolute inset-0 pointer-events-none z-50 flex items-center justify-center p-6 text-center pb-[160px] md:pb-0">
         {workoutStage === 'calibrating' && (
           <div className="bg-slate-900/95 border-2 border-sky-500/50 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-[0_0_80px_rgba(0,0,0,0.8)] flex flex-col items-center gap-6 animate-in fade-in zoom-in">
             <h3 className="text-2xl font-black uppercase tracking-widest text-white">{setupHint}</h3>

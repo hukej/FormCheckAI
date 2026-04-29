@@ -41,6 +41,7 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish, exercise
   const initialHeelToeDistR = useRef(null);
   const fpsRef = useRef(0);
   const lastFrameTime = useRef(0);
+  const hasFinishedRef = useRef(false);
 
   // Smoothing refs
   const smoothKneeAngle = useRef(180);
@@ -55,62 +56,11 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish, exercise
   const [isModelLoaded, setIsModelLoaded] = useState(false);
   const isModelLoadedRef = useRef(false);
 
-  // Dataset Collection
-  const [isRecordingDataset, setIsRecordingDataset] = useState(false);
-  const isRecordingDatasetRef = useRef(false);
-  const datasetFrames = useRef([]);
-  const datasetLabels = useRef({});
-
   const speak = useCallback((text, type, cooldown = 4000, cancelPrevious = false) => {
     createSpeakFunction(lastSpokenRef)(text, type, cooldown, cancelPrevious);
   }, []);
 
-  const startDataset = useCallback((labels, selectedExerciseId = exerciseId) => {
-    datasetLabels.current = labels;
-    datasetFrames.current = [];
-    isRecordingDatasetRef.current = true;
-    setIsRecordingDataset(true);
-    speak(`Rozpoczęto nagrywanie danych dla ${selectedExerciseId}`, "info", 1000);
-  }, [speak, exerciseId]);
 
-  const stopAndExportDataset = useCallback(async (selectedExerciseId = exerciseId) => {
-    isRecordingDatasetRef.current = false;
-    setIsRecordingDataset(false);
-    if (datasetFrames.current.length === 0) {
-      speak("Brak zebranych danych", "error", 1000);
-      return;
-    }
-
-    // 1. Zapis lokalny (Download)
-    const payload = { exercise: selectedExerciseId, frames: datasetFrames.current };
-    const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `trening_${selectedExerciseId}_${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    // 2. Synchronizacja z chmurą (Supabase)
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase.from('training_data').insert({
-        payload: payload,
-        user_id: user?.id || 'guest',
-        exercise_id: selectedExerciseId,
-        created_at: new Date().toISOString()
-      });
-      if (error) throw error;
-      speak("Zapisano i zsynchronizowano dane", "info", 1000);
-    } catch (err) {
-      console.error("Błąd synchronizacji z Supabase:", err);
-      speak("Zapisano lokalnie (błąd chmury)", "warning", 1000);
-    }
-
-    datasetFrames.current = [];
-  }, [speak, exerciseId]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -227,6 +177,7 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish, exercise
         setPhase("idle");
         setQualityAlert(null);
         lastFrameTime.current = Date.now();
+        hasFinishedRef.current = false;
       }, 0);
       return () => clearTimeout(timer);
     } else {
@@ -263,6 +214,8 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish, exercise
                 const dPen = (s.shallowReps / (repCountRef.current || 1)) * 30;
                 score = Math.max(0, Math.round(score - hPen - bPen - dPen));
                 if (isNaN(score)) score = 0;
+                if (hasFinishedRef.current) return;
+                hasFinishedRef.current = true;
                 speak(`Koniec treningu. Wykonałeś ${repCountRef.current} powtórzeń.`, "finish", 1000);
                 onWorkoutFinish(repCountRef.current, url, {
                   knee: { min: s.kneeAngles.length ? Math.min(...s.kneeAngles) : 0, avg: s.kneeAngles.length ? Math.round(s.kneeAngles.reduce((a, b) => a + b, 0) / s.kneeAngles.length) : 0 },
@@ -437,23 +390,7 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish, exercise
           } else {
             statsRef.current.totalFrames++; statsRef.current.kneeAngles.push(kneeA); statsRef.current.backAngles.push(backT);
 
-            // --- Inteligentne Bramkowanie Danych (Smart Gating) ---
 
-            if (isRecordingDatasetRef.current && isReady) {
-              const features = ExerciseModel.extractFeatures(worldLm);
-              if (features) {
-                // Jeśli użytkownik stoi prosto, zapisujemy to jako "Poprawne" (wszystkie błędy false)
-                // Nawet jeśli wybrał tag błędu, bo błąd techniczny dzieje się tylko w ruchu.
-                const effectiveLabels = isActivePhase
-                  ? datasetLabels.current
-                  : { valgus: false, lean: false, shallow: false, heels_up: false };
-
-                datasetFrames.current.push({
-                  features: features,
-                  labels: effectiveLabels
-                });
-              }
-            }
 
             // --- Analiza Techniki (PURE ML) ---
             const preds = lastPredictionsRef.current;
@@ -676,9 +613,6 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish, exercise
     kneeAngle,
     backAngle,
     isBackPoor,
-    isShallow,
-    isRecordingDataset,
-    startDataset,
-    stopAndExportDataset
+    isShallow
   };
 };

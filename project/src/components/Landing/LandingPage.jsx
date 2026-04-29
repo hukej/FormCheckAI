@@ -14,20 +14,25 @@ const Nav = ({ onLaunch, onDemo, session }) => (
         </div>
         <span className="font-black tracking-tighter text-xl italic text-white uppercase">FORMCHECK<span className="text-sky-400">AI</span></span>
       </div>
-      <div className="hidden md:flex items-center gap-6 text-[10px] font-black tracking-[0.2em] uppercase text-slate-400">
-        <a href="#demo" className="hover:text-sky-400 transition-colors">Zobacz Demo</a>
-        <a href="#disclaimer" className="hover:text-sky-400 transition-colors">Ważne info</a>
+      <div className="flex items-center gap-3 md:gap-6 text-[10px] font-black tracking-[0.2em] uppercase text-slate-400">
+        <a href="#demo" className="hidden lg:block hover:text-sky-400 transition-colors">Zobacz Demo</a>
+        <a href="#disclaimer" className="hidden lg:block hover:text-sky-400 transition-colors">Ważne info</a>
         <button 
           onClick={onDemo} 
-          className="text-white border border-slate-700 px-4 py-2 rounded-xl hover:bg-slate-800 transition-all uppercase font-black"
+          className="hidden md:block text-white border border-slate-700 px-4 py-2 rounded-xl hover:bg-slate-800 transition-all uppercase font-black"
         >
           Otwórz Demo
         </button>
         <button 
           onClick={onLaunch} 
-          className="bg-sky-500 text-slate-950 px-5 py-2 rounded-xl font-black hover:bg-sky-400 hover:shadow-[0_0_20px_rgba(14,165,233,0.4)] transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap"
+          className="bg-sky-500 text-slate-950 px-4 py-2 md:px-5 md:py-2 rounded-xl font-black hover:bg-sky-400 hover:shadow-[0_0_20px_rgba(14,165,233,0.4)] transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap"
         >
-          {session ? 'Przejdź do aplikacji' : 'Zaloguj się'}
+          {session ? (
+            <span className="hidden sm:inline">Panel AI</span>
+          ) : (
+            <span>Zaloguj się</span>
+          )}
+          {session && <ChevronRight size={14} className="sm:hidden" />}
         </button>
       </div>
     </div>

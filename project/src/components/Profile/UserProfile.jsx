@@ -212,6 +212,31 @@ const UserProfile = ({ avatarUrl, onAvatarChange, isGuest, onLogin, initialAchie
           )}
         </div>
       </div>
+
+      {isGuest && (
+        <div className="absolute inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-950/20 backdrop-blur-[2px]">
+          <div className="bg-slate-900/95 backdrop-blur-3xl border border-slate-800 p-8 sm:p-12 rounded-[2.5rem] sm:rounded-[3.5rem] shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col items-center text-center gap-6 sm:gap-8 max-w-lg animate-in zoom-in-95 duration-500 border-t-sky-500/30">
+            <div className="p-5 sm:p-6 bg-sky-500/10 rounded-full border border-sky-500/20 shadow-[0_0_30px_rgba(14,165,233,0.15)]">
+              <Lock className="text-sky-500 w-12 h-12 sm:w-16 sm:h-16" />
+            </div>
+            <div className="space-y-3">
+              <h3 className="text-3xl sm:text-5xl font-black uppercase italic text-white tracking-tighter leading-tight">
+                Profil <span className="text-sky-500">Zablokowany</span>
+              </h3>
+              <p className="text-slate-400 text-xs sm:text-sm leading-relaxed max-w-sm font-medium">
+                Tryb Demo pozwala jedynie na podgląd interfejsu. Zaloguj się, aby odblokować pełną analitykę AI, śledzenie postępów i historię treningów.
+              </p>
+            </div>
+            <button 
+              onClick={onLogin}
+              className="w-full bg-white text-slate-950 px-8 py-4 sm:py-5 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-widest hover:bg-sky-500 hover:scale-[1.02] active:scale-95 transition-all shadow-[0_20px_40px_rgba(0,0,0,0.3)] flex items-center justify-center gap-3 group"
+            >
+              <ShieldCheck className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              Zaloguj się teraz
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

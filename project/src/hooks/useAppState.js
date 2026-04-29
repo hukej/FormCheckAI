@@ -13,19 +13,25 @@ export const useAppState = () => {
   const [selectedAchievementId, setSelectedAchievementId] = useState(null);
 
   const handleWorkoutFinish = useCallback((reps, videoURL, debugInfo) => {
+    const newWorkout = { 
+      name: selectedEx.name, 
+      category: selectedEx.category, 
+      reps, 
+      videoUrl: videoURL, 
+      debug: debugInfo, 
+      score: debugInfo.score, 
+      date: new Date().toLocaleTimeString() 
+    };
+
     setWorkoutHistory(prev => {
-      const newWorkout = { 
-        name: selectedEx.name, 
-        category: selectedEx.category, 
-        reps, 
-        videoUrl: videoURL, 
-        debug: debugInfo, 
-        score: debugInfo.score, 
-        date: new Date().toLocaleTimeString() 
-      };
       const updated = [...prev, newWorkout];
-      setCurrentWorkoutIndex(updated.length - 1);
       return updated;
+    });
+    
+    // Ustawiamy index bezpośrednio na podstawie długości poprzedniej tablicy + 1
+    setWorkoutHistory(prev => {
+      setCurrentWorkoutIndex(prev.length - 1);
+      return prev;
     });
     
     setCurrentView('feedback'); 
