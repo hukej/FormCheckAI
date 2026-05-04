@@ -1,6 +1,6 @@
 import React from 'react';
 import "@tensorflow/tfjs-backend-webgl";
-import { Play, Square, BrainCircuit } from 'lucide-react';
+import { Play, Square, BrainCircuit, Eye, EyeOff } from 'lucide-react';
 
 // Custom Hooks for state and logic
 import { useAppState } from './hooks';
@@ -46,6 +46,9 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest, session }) {
     handleWorkoutFinish,
     handleAchievementClick
   } = useAppState();
+
+  // NOWY STAN: Sterowanie widocznością modelu pomocniczego
+  const [showGuideModel, setShowGuideModel] = React.useState(true);
 
   // Helper to determine if we are in the workout/camera mode
   const isWorkoutView = currentView === 'model';
@@ -160,31 +163,33 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest, session }) {
                         selectedEx={selectedEx}
                       />
 
-                      {/* MINI MODEL OVERLAY - Bottom left of camera feed */}
-                      <div className="absolute bottom-[170px] md:bottom-28 left-6 w-[220px] h-[165px] md:w-[320px] md:h-[240px] bg-slate-900/40 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden z-[140] animate-in slide-in-from-left-5 duration-700">
-                        <div className="absolute top-4 left-5 z-10 flex items-center gap-2 pointer-events-none">
-                          <div className="bg-sky-500 p-1 rounded-lg">
-                            <BrainCircuit size={12} className="text-slate-950" />
-                          </div>
-                          <p className="text-[9px] font-black uppercase text-white tracking-[0.15em] drop-shadow-md">
-                            {selectedEx?.name}
-                          </p>
-                        </div>
-
-                        {selectedEx?.modelPath ? (
-                          <ExerciseModelViewer modelPath={selectedEx.modelPath} />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center p-6 text-center bg-slate-950/20">
-                            <p className="text-[8px] text-slate-400 uppercase font-bold tracking-widest leading-relaxed">
-                              Brak modelu 3D dla tego ćwiczenia
+                      {/* MINI MODEL OVERLAY - Bottom left of camera feed - WARUNKOWO WYŚWIETLANY */}
+                      {showGuideModel && (
+                        <div className="absolute bottom-[170px] md:bottom-28 left-6 w-[220px] h-[165px] md:w-[320px] md:h-[240px] bg-slate-900/40 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden z-[140] animate-in slide-in-from-left-5 duration-700">
+                          <div className="absolute top-4 left-5 z-10 flex items-center gap-2 pointer-events-none">
+                            <div className="bg-sky-500 p-1 rounded-lg">
+                              <BrainCircuit size={12} className="text-slate-950" />
+                            </div>
+                            <p className="text-[9px] font-black uppercase text-white tracking-[0.15em] drop-shadow-md">
+                              {selectedEx?.name}
                             </p>
                           </div>
-                        )}
 
-                        <div className="absolute bottom-3 left-0 w-full text-center pointer-events-none">
-                          <p className="text-[7px] text-sky-400/60 font-bold uppercase tracking-[0.2em]">Technika Wzorcowa</p>
+                          {selectedEx?.modelPath ? (
+                            <ExerciseModelViewer modelPath={selectedEx.modelPath} />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center p-6 text-center bg-slate-950/20">
+                              <p className="text-[8px] text-slate-400 uppercase font-bold tracking-widest leading-relaxed">
+                                Brak modelu 3D dla tego ćwiczenia
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="absolute bottom-3 left-0 w-full text-center pointer-events-none">
+                            <p className="text-[7px] text-sky-400/60 font-bold uppercase tracking-[0.2em]">Technika Wzorcowa</p>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -207,7 +212,20 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest, session }) {
                         {active ? 'Monitorowanie postawy...' : 'Ustaw się przed kamerą'}
                       </p>
                     </div>
-                    <div className="flex justify-center md:justify-end w-full md:w-auto">
+                    <div className="flex justify-center md:justify-end w-full md:w-auto gap-4">
+                      {/* NOWY PRZYCISK: Przełącznik widoczności modelu */}
+                      <button
+                        onClick={() => setShowGuideModel(!showGuideModel)}
+                        className={`flex items-center justify-center w-[54px] h-[54px] rounded-2xl border transition-all duration-300 ${
+                          showGuideModel 
+                            ? 'bg-slate-800 border-sky-500/30 text-sky-400 shadow-[0_0_15px_rgba(14,165,233,0.1)]' 
+                            : 'bg-slate-900 border-white/5 text-slate-500 grayscale'
+                        }`}
+                        title={showGuideModel ? "Ukryj wzorzec" : "Pokaż wzorzec"}
+                      >
+                        {showGuideModel ? <Eye size={20} /> : <EyeOff size={20} />}
+                      </button>
+
                       <button
                         onClick={() => setActive(!active)}
                         className={`group flex items-center gap-4 px-10 h-[54px] rounded-2xl border transition-all duration-500 font-black uppercase tracking-[0.25em] text-[11px] ${active
