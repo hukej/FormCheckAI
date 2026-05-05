@@ -18,11 +18,24 @@ const ACHIEVEMENTS_LIST = [
 ];
 
 const UserProfile = ({ avatarUrl, onAvatarChange, isGuest, onLogin, initialAchievementId }) => {
-  const { loading, formData, setFormData, stats, saveState, saveProfileData, toggleDay } = useProfile(isGuest);
+  const { loading, formData, stats, saveState, saveProfileData } = useProfile(isGuest);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [highlightedAch, setHighlightedAch] = useState(null);
   const fileInputRef = useRef(null);
   const achRefs = useRef({});
+  const [localData, setLocalData] = useState({});
+
+  useEffect(() => {
+    if (!loading) setLocalData(formData);
+  }, [loading, formData, activeTab]);
+
+  const handleToggleDay = (day) => {
+    if (isGuest) return;
+    const days = localData.trainingDays?.includes(day) 
+      ? localData.trainingDays.filter(d => d !== day) 
+      : [...(localData.trainingDays || []), day];
+    setLocalData({ ...localData, trainingDays: days });
+  };
 
   useEffect(() => {
     if (initialAchievementId && !loading) {
@@ -140,21 +153,21 @@ const UserProfile = ({ avatarUrl, onAvatarChange, isGuest, onLogin, initialAchie
             <div className="bg-slate-900/60 border border-slate-800 rounded-[2rem] p-5 sm:p-8 shadow-xl space-y-6 animate-in slide-in-from-left-8 duration-500 lg:min-h-[560px] flex flex-col">
               <h3 className="text-xs sm:text-sm font-black uppercase text-white tracking-widest border-b border-slate-800 pb-4">Dane Fizyczne</h3>
               <div className="grid grid-cols-2 gap-4 flex-grow">
-                <Input text="Imię" val={formData.firstName} onChange={(e)=>setFormData({...formData, firstName: e.target.value})} />
-                <Input text="Nazwisko" val={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} />
-                <Input text="Wiek" type="number" val={formData.age} onChange={(e)=>setFormData({...formData, age: e.target.value})} />
-                <Input text="Waga (kg)" type="number" val={formData.weight} onChange={(e)=>setFormData({...formData, weight: e.target.value})} />
-                <Input text="Wzrost (cm)" type="number" val={formData.height} onChange={(e)=>setFormData({...formData, height: e.target.value})} />
+                <Input text="Imię" val={localData.firstName || ''} onChange={(e)=>setLocalData({...localData, firstName: e.target.value})} />
+                <Input text="Nazwisko" val={localData.lastName || ''} onChange={(e) => setLocalData({ ...localData, lastName: e.target.value })} />
+                <Input text="Wiek" type="number" val={localData.age || ''} onChange={(e)=>setLocalData({...localData, age: e.target.value})} />
+                <Input text="Waga (kg)" type="number" val={localData.weight || ''} onChange={(e)=>setLocalData({...localData, weight: e.target.value})} />
+                <Input text="Wzrost (cm)" type="number" val={localData.height || ''} onChange={(e)=>setLocalData({...localData, height: e.target.value})} />
                 <div className="hidden sm:block"></div>
                 <div className="col-span-2">
-                  <Select label="Płeć" val={formData.gender} onChange={(e)=>setFormData({...formData, gender: e.target.value})} options={['Mężczyzna', 'Kobieta']} />
+                  <Select label="Płeć" val={localData.gender || ''} onChange={(e)=>setLocalData({...localData, gender: e.target.value})} options={['Mężczyzna', 'Kobieta']} />
                 </div>
                 <div className="col-span-2 space-y-1.5">
                   <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-2">Bio</label>
-                  <textarea value={formData.bio} onChange={(e)=>setFormData({...formData, bio: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-bold outline-none resize-none h-24" />
+                  <textarea value={localData.bio || ''} onChange={(e)=>setLocalData({...localData, bio: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-bold outline-none resize-none h-24" />
                 </div>
               </div>
-              <SaveButton saveProfileData={saveProfileData} saveState={saveState} />
+              <SaveButton saveProfileData={() => saveProfileData(localData)} saveState={saveState} />
             </div>
           )}
 
@@ -162,14 +175,14 @@ const UserProfile = ({ avatarUrl, onAvatarChange, isGuest, onLogin, initialAchie
             <div className="bg-slate-900/60 border border-slate-800 rounded-[2rem] p-5 sm:p-8 shadow-xl space-y-6 animate-in slide-in-from-left-8 duration-500 lg:min-h-[560px] flex flex-col">
               <h3 className="text-xs sm:text-sm font-black uppercase text-white tracking-widest border-b border-slate-800 pb-4">Plan & Dieta</h3>
               <div className="grid grid-cols-2 gap-4">
-                <Select label="Cel" val={formData.goal} onChange={(e)=>setFormData({...formData, goal: e.target.value})} options={['Masa', 'Redukcja', 'Siła']} />
-                <Select label="Dieta" val={formData.diet} onChange={(e)=>setFormData({...formData, diet: e.target.value})} options={['Zbilansowana', 'Wysokobiałkowa', 'Keto']} />
+                <Select label="Cel" val={localData.goal || ''} onChange={(e)=>setLocalData({...localData, goal: e.target.value})} options={['Masa', 'Redukcja', 'Siła']} />
+                <Select label="Dieta" val={localData.diet || ''} onChange={(e)=>setLocalData({...localData, diet: e.target.value})} options={['Zbilansowana', 'Wysokobiałkowa', 'Keto']} />
               </div>
               <div className="space-y-3 pt-4 border-t border-slate-800 flex-grow">
                 <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-2">Dni Treningowe</label>
-                <div className="flex flex-wrap gap-2">{['Pon', 'Wt', 'Śr', 'Czw', 'Pią', 'Sob', 'Ndz'].map(day => (<button key={day} onClick={() => toggleDay(day)} className={`px-3 py-2.5 rounded-lg font-black text-[10px] transition-all border-2 flex-grow text-center ${formData.trainingDays.includes(day) ? 'bg-sky-500 border-sky-500 text-slate-950' : 'bg-slate-950 border-slate-800 text-slate-500'}`}>{day}</button>))}</div>
+                <div className="flex flex-wrap gap-2">{['Pon', 'Wt', 'Śr', 'Czw', 'Pią', 'Sob', 'Ndz'].map(day => (<button key={day} onClick={() => handleToggleDay(day)} className={`px-3 py-2.5 rounded-lg font-black text-[10px] transition-all border-2 flex-grow text-center ${localData.trainingDays?.includes(day) ? 'bg-sky-500 border-sky-500 text-slate-950' : 'bg-slate-950 border-slate-800 text-slate-500'}`}>{day}</button>))}</div>
               </div>
-              <SaveButton saveProfileData={saveProfileData} saveState={saveState} />
+              <SaveButton saveProfileData={() => saveProfileData(localData)} saveState={saveState} />
             </div>
           )}
 
@@ -182,11 +195,11 @@ const UserProfile = ({ avatarUrl, onAvatarChange, isGuest, onLogin, initialAchie
                     <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-2 uppercase">
                       {m === 'chest' ? 'Klatka' : m === 'arm' ? 'Biceps' : m === 'waist' ? 'Talia' : 'Udo'}
                     </label>
-                    <input type="number" value={formData.measurements?.[m] || ''} onChange={(e) => setFormData({...formData, measurements: { ...formData.measurements, [m]: e.target.value }})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-3 text-white font-black text-center outline-none" placeholder="--" />
+                    <input type="number" value={localData.measurements?.[m] || ''} onChange={(e) => setLocalData({...localData, measurements: { ...localData.measurements, [m]: e.target.value }})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-3 text-white font-black text-center outline-none" placeholder="--" />
                   </div>
                 ))}
               </div>
-              <SaveButton saveProfileData={saveProfileData} saveState={saveState}/>
+              <SaveButton saveProfileData={() => saveProfileData(localData)} saveState={saveState}/>
             </div>
           )}
 
