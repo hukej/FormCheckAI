@@ -567,8 +567,14 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish, exercise
           return;
         }
 
+        const isMobile = window.innerWidth <= 768;
+
         poseRef.current = new window.Pose({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}` });
-        poseRef.current.setOptions({ modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+        poseRef.current.setOptions({ 
+          modelComplexity: isMobile ? 0 : 1, 
+          minDetectionConfidence: 0.5, 
+          minTrackingConfidence: 0.5 
+        });
         poseRef.current.onResults(onResults);
 
         cameraRef.current = new window.Camera(videoRef.current, {
@@ -577,7 +583,8 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish, exercise
               await poseRef.current.send({ image: videoRef.current });
             }
           },
-          width: 1280, height: 720
+          width: isMobile ? 640 : 1280, 
+          height: isMobile ? 480 : 720
         });
 
         console.log("Próba uruchomienia strumienia wideo...");
