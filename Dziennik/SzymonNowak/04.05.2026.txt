@@ -1,0 +1,1 @@
+Dziś usunąłem kilka niepotrzebnych funkcji z naszego projektu.

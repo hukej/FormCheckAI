@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 
 export const useAppState = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
   const [currentView, setCurrentView] = useState('home'); 
   const [muscleFilter, setMuscleFilter] = useState('Wszystkie');

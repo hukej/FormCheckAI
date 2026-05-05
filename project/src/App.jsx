@@ -161,12 +161,14 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest, session }) {
                       />
 
                       {/* MINI MODEL OVERLAY - Bottom left of camera feed */}
-                      <div className="absolute bottom-[170px] md:bottom-28 left-6 w-[220px] h-[165px] md:w-[320px] md:h-[240px] bg-slate-900/40 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden z-[140] animate-in slide-in-from-left-5 duration-700">
+<div className="absolute bottom-[110px] md:bottom-28 left-4 
+w-[150px] h-[165px] 
+md:w-[320px] md:h-[240px] 
+bg-slate-900/40 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden z-[140] animate-in slide-in-from-left-5 duration-700">
                         <div className="absolute top-4 left-5 z-10 flex items-center gap-2 pointer-events-none">
                           <div className="bg-sky-500 p-1 rounded-lg">
-                            <BrainCircuit size={12} className="text-slate-950" />
                           </div>
-                          <p className="text-[9px] font-black uppercase text-white tracking-[0.15em] drop-shadow-md">
+                          <p className="text-[7px] font-black uppercase text-white tracking-[0.15em] drop-shadow-md">
                             {selectedEx?.name}
                           </p>
                         </div>
@@ -191,9 +193,9 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest, session }) {
 
                 {/* AI System Control Panel - Fixed at bottom in workout mode */}
                 {isWorkoutView && (
-                  <div className="bg-slate-900/95 backdrop-blur-xl h-[150px] md:h-[85px] flex flex-col justify-center md:grid md:grid-cols-3 items-center px-8 md:px-12 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] border-t border-white/5 fixed bottom-0 left-0 w-full z-[150]">
+                 <div className="bg-slate-900/95 backdrop-blur-xl h-[90px] md:h-[85px] flex items-center justify-between px-6 md:px-12 fixed bottom-0 left-0 w-full z-[150]">
                     <div className="hidden md:block" />
-                    <div className="flex flex-col items-center justify-center text-center col-span-3 md:col-span-1 mb-4 md:mb-0">
+                    <div className="flex flex-col items-start md:items-center justify-center text-left md:text-center col-span-3 md:col-span-1">
                       <div className="flex items-center gap-3 mb-1.5">
                         <div className="relative flex items-center justify-center">
                           <div className={`h-3 w-3 rounded-full ${active ? 'bg-green-500 animate-pulse shadow-[0_0_15px_#22c55e]' : 'bg-red-500 shadow-[0_0_15px_#ef4444]'}`} />
@@ -207,7 +209,7 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest, session }) {
                         {active ? 'Monitorowanie postawy...' : 'Ustaw się przed kamerą'}
                       </p>
                     </div>
-                    <div className="flex justify-center md:justify-end w-full md:w-auto">
+                    <div className="flex justify-end w-auto">
                       <button
                         onClick={() => setActive(!active)}
                         className={`group flex items-center gap-4 px-10 h-[54px] rounded-2xl border transition-all duration-500 font-black uppercase tracking-[0.25em] text-[11px] ${active
