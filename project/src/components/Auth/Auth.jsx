@@ -138,13 +138,13 @@ export default function Auth({ onGoToLanding, authState }) {
                         </div>
                         <span className="text-[10px] text-slate-400 font-black tracking-widest uppercase group-hover:text-slate-300">Zapamiętaj</span>
                       </div>
-                      <button 
+                      {/* <button 
                         type="button"
                         onClick={() => { setIsForgotPassword(true); setAuthError(''); setErrors({}); }}
                         className="text-[10px] text-sky-500 font-black tracking-widest uppercase hover:text-sky-400 hover:underline transition-all"
                       >
                         Zapomniałeś hasła?
-                      </button>
+                      </button> */}
                     </div>
                   </>
                 )}
@@ -153,7 +153,7 @@ export default function Auth({ onGoToLanding, authState }) {
                   {authLoading ? <Loader2 className="animate-spin size-4" /> : <>{isRegistering ? 'Utwórz konto' : 'Zaloguj się'} <ArrowRight size={16} /></>}
                 </button>
               </form>
-
+{/* 
               <div className="relative my-8 text-center">
                 <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-800/50"></div></div>
                 <span className="relative bg-[#131b2e] px-4 text-[9px] text-slate-600 font-black uppercase tracking-[0.3em]">Lub kontynuuj przez</span>
@@ -167,7 +167,7 @@ export default function Auth({ onGoToLanding, authState }) {
                 <button type="button" className="flex items-center justify-center gap-3 py-3 border border-slate-800 rounded-2xl hover:bg-white/[0.03] hover:border-slate-600 transition-all text-[10px] font-black uppercase tracking-widest text-slate-400">
                   <span className="text-blue-500 text-sm font-black">f</span> Facebook
                 </button>
-              </div>
+              </div> */}
 
               <div className="mt-8 text-center pt-6 border-t border-slate-800/50 relative z-10">
                 <button type="button" onClick={() => { setIsRegistering(!isRegistering); setErrors({}); setAuthError(''); }} 
