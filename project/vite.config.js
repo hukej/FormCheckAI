@@ -9,13 +9,18 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('@tensorflow')) return 'tensorflow';
-            if (id.includes('react')) return 'vendor-react';
-            return 'vendor'; // Reszta bibliotek
+            if (id.includes('@tensorflow')) return 'ml-engine';
+            if (id.includes('three')) return '3d-engine';
+            if (id.includes('@react-three')) return '3d-react';
+            if (id.includes('lucide-react')) return 'icons';
+            if (id.includes('framer-motion')) return 'animations';
+            return 'vendor';
           }
         }
       }
     },
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 1500,
+    reportCompressedSize: false, // Przyspiesza build
+    cssCodeSplit: true,
   }
 })

@@ -471,10 +471,10 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish, exercise
 
             // --- Liczenie powtórzeń (Dynamiczna Maszyna Stanów) ---
             const repConfig = {
-              pushup: { angle: elbowA, down: DETECTION_PARAMS.PUSHUP.DOWN_ANGLE, up: DETECTION_PARAMS.PUSHUP.UP_ANGLE },
+              pushup: { angle: elbowA, down: 135, up: DETECTION_PARAMS.PUSHUP.UP_ANGLE }, // Wcześniejsze wejście w fazę dół
               lunge: { angle: kneeA, down: DETECTION_PARAMS.LUNGE.DOWN_ANGLE, up: DETECTION_PARAMS.LUNGE.UP_ANGLE },
               jumping_jacks: { angle: jackArmA, down: DETECTION_PARAMS.JUMPING_JACKS.DOWN_ANGLE, up: DETECTION_PARAMS.JUMPING_JACKS.UP_ANGLE },
-              squat: { angle: kneeA, down: DETECTION_PARAMS.SQUAT.REP_DOWN_ANGLE, up: DETECTION_PARAMS.SQUAT.REP_UP_ANGLE }
+              squat: { angle: kneeA, down: 125, up: DETECTION_PARAMS.SQUAT.REP_UP_ANGLE } // Wcześniejsze wejście w fazę dół (125 zamiast 90)
             };
 
             const currentCfg = repConfig[exerciseId] || repConfig.squat;
@@ -515,24 +515,33 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish, exercise
                 setPhase("up");
 
                 if (nowTime - lastRepTime.current > DETECTION_PARAMS.REP_COOLDOWN_MS) {
+                  let isRepShallow = false;
+                  let warningAngle = 0;
+                  let currentAngle = 0;
+
                   if (exerciseId === 'squat') {
                     const framesToLookBack = Math.min(statsRef.current.kneeAngles.length, Math.round(currentFps * 2.5));
                     const recentAngles = statsRef.current.kneeAngles.slice(-framesToLookBack);
                     const minKneeInRep = recentAngles.length ? Math.min(...recentAngles) : kneeA;
+                    isRepShallow = minKneeInRep > DETECTION_PARAMS.SQUAT.DEPTH_WARNING_ANGLE || currentIsShallow;
+                    warningAngle = DETECTION_PARAMS.SQUAT.DEPTH_WARNING_ANGLE;
+                    currentAngle = minKneeInRep;
+                  } else if (exerciseId === 'pushup') {
+                    // Dla pompek sprawdzamy kąt w łokciu
+                    isRepShallow = elbowA > (DETECTION_PARAMS.PUSHUP.DOWN_ANGLE + 10); // Margines 10 stopni
+                    warningAngle = DETECTION_PARAMS.PUSHUP.DOWN_ANGLE;
+                    currentAngle = elbowA;
+                  }
 
-                    if (minKneeInRep > DETECTION_PARAMS.SQUAT.DEPTH_WARNING_ANGLE || currentIsShallow) {
-                      statsRef.current.shallowReps++;
-                      speak("Zejdź niżej", "depth_error", 5000);
-                      setIsShallow(true);
-                      setTimeout(() => setIsShallow(false), 3000);
-                    } else {
-                      setRepCount(prev => { repCountRef.current = prev + 1; return prev + 1; });
-                      lastRepTime.current = nowTime;
-                      setIsShallow(false);
-                    }
+                  if (isRepShallow) {
+                    statsRef.current.shallowReps++;
+                    speak("Zejdź niżej", "depth_error", 5000);
+                    setIsShallow(true);
+                    setTimeout(() => setIsShallow(false), 3000);
                   } else {
                     setRepCount(prev => { repCountRef.current = prev + 1; return prev + 1; });
                     lastRepTime.current = nowTime;
+                    setIsShallow(false);
                   }
                 }
               }

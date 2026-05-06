@@ -3,9 +3,8 @@ import { useState, useCallback } from 'react';
 export const useAppState = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showAchievements, setShowAchievements] = useState(false);
-  const [currentView, setCurrentView] = useState('home'); 
   const [muscleFilter, setMuscleFilter] = useState('Wszystkie');
-  const [selectedEx, setSelectedEx] = useState({ name: "Przysiady Klasyczne", id: "001", category: "Nogi" });
+  const [selectedEx, setSelectedEx] = useState({ name: "Przysiady Klasyczne", id: "001", category: "Nogi", exerciseId: "squat" });
   const [active, setActive] = useState(false);
   const [workoutHistory, setWorkoutHistory] = useState([]);
   const [currentWorkoutIndex, setCurrentWorkoutIndex] = useState(0);
@@ -25,22 +24,16 @@ export const useAppState = () => {
 
     setWorkoutHistory(prev => {
       const updated = [...prev, newWorkout];
+      setCurrentWorkoutIndex(updated.length - 1);
       return updated;
     });
     
-    // Ustawiamy index bezpośrednio na podstawie długości poprzedniej tablicy + 1
-    setWorkoutHistory(prev => {
-      setCurrentWorkoutIndex(prev.length - 1);
-      return prev;
-    });
-    
-    setCurrentView('feedback'); 
     setActive(false);
   }, [selectedEx.name, selectedEx.category]);
 
-  const handleAchievementClick = useCallback((id, setView, setAchievements) => {
+  const handleAchievementClick = useCallback((id, navigateToView, setAchievements) => {
     setSelectedAchievementId(id);
-    setView('profile');
+    navigateToView('profile');
     setAchievements(false);
     setTimeout(() => setSelectedAchievementId(null), 1000);
   }, []);
@@ -48,7 +41,6 @@ export const useAppState = () => {
   return {
     isSidebarOpen, setIsSidebarOpen,
     showAchievements, setShowAchievements,
-    currentView, setCurrentView,
     muscleFilter, setMuscleFilter,
     selectedEx, setSelectedEx,
     active, setActive,

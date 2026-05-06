@@ -15,9 +15,21 @@ const Model = ({ path }) => {
       action.play();
     }
     fbx.scale.setScalar(0.01);
-    
-    // Ustawienie modelu: -1.2 sprawi, że będzie idealnie na środku okna podglądu
     fbx.position.set(0, -1.2, 0); 
+
+    return () => {
+      // Sprzątanie GPU
+      fbx.traverse(child => {
+        if (child.isMesh) {
+          child.geometry.dispose();
+          if (child.material.isMaterial) {
+            child.material.dispose();
+          } else {
+            for (const m of child.material) m.dispose();
+          }
+        }
+      });
+    };
   }, [fbx]);
 
   useFrame((state, delta) => {

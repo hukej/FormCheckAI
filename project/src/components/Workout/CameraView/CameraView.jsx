@@ -18,6 +18,7 @@ const CameraView = ({ isActive, isGuest, onWorkoutFinish, selectedEx }) => {
     qualityAlert,
     kneeAngle,
     backAngle,
+    elbowAngle,
     isBackPoor,
     isShallow
   } = useWorkoutDetection(isActive, isGuest, onWorkoutFinish, selectedEx?.exerciseId || 'squat');
@@ -57,6 +58,20 @@ const CameraView = ({ isActive, isGuest, onWorkoutFinish, selectedEx }) => {
             <div className="text-4xl md:text-6xl tracking-tighter uppercase mb-1">PLECY PROSTO!</div>
             <div className="text-xs md:text-sm opacity-90 uppercase tracking-[0.2em]">Nie garb się i trzymaj pion</div>
           </div>
+        )}
+
+        {/* Live Depth Warning during phase 'down' */}
+        {workoutStage === 'active' && phase === 'down' && !isShallow && (
+          (() => {
+            const isTooHigh = selectedEx?.exerciseId === 'pushup' ? elbowAngle > 100 : kneeAngle > 100;
+            if (!isTooHigh) return null;
+            return (
+              <div className="w-full max-w-sm bg-sky-500/20 backdrop-blur-md text-sky-400 font-black px-4 py-3 rounded-2xl border-2 border-sky-500/30 text-center animate-pulse">
+                <div className="text-xl md:text-2xl tracking-tight uppercase">DOKOŃCZ RUCH</div>
+                <div className="text-[10px] opacity-80 uppercase tracking-widest">Zejdź jeszcze trochę niżej</div>
+              </div>
+            );
+          })()
         )}
       </div>
 

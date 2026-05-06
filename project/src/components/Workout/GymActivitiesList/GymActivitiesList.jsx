@@ -11,6 +11,23 @@ const filteredActivities = (!filter || filter === 'Wszystkie')
   return (
     <div className="h-full flex flex-col p-6 overflow-hidden">
 
+      {/* Category Selector */}
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setFilter(cat)}
+            className={`px-6 py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap
+              ${filter === cat 
+                ? 'bg-sky-500 border-sky-400 text-slate-950 shadow-[0_5px_15px_rgba(14,165,233,0.3)]' 
+                : 'bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-700 hover:text-slate-300'}
+            `}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
       {/* Activities Grid */}
       <div className="flex-grow overflow-y-auto pr-2 grid grid-cols-1 md:grid-cols-2 gap-4 content-start pb-10">
         {filteredActivities.map((activity) => {

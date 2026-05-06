@@ -1,0 +1,1 @@
+Dzisiaj dodałem działające modele do innych ćwiczeń oraz routing na stronie oraz wykonałem podstawową optymalizacje.

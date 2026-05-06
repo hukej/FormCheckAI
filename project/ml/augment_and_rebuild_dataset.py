@@ -96,34 +96,48 @@ def process_frame(old_features, rot_angle=0):
         round(hipSymmetry, 6)
     ]
 
-input_path = r"c:\Users\Kacpe\Desktop\Practisy pzdr\FormCheckAI\project\ml\training_data\trening_squat.json"
-output_path = r"c:\Users\Kacpe\Desktop\Practisy pzdr\FormCheckAI\project\ml\training_data\trening_squat_3d_augmented.json"
+import os
 
-print("Ładowanie oryginalnych danych (przodem)...")
-with open(input_path, "r", encoding="utf-8") as f:
-    data = json.load(f)
+exercises = ["squat", "pushup", "lunge", "jumping_jacks"]
+base_dir = r"c:\Users\Kacpe\Desktop\Practisy pzdr\FormCheckAI\project\ml\training_data"
 
-new_frames = []
-print("Augmentacja 3D (obroty symulujące kamerę z boku)...")
+for ex in exercises:
+    input_path = os.path.join(base_dir, f"trening_{ex}.json")
+    output_path = os.path.join(base_dir, f"trening_{ex}_augmented.json")
 
-angles_to_simulate = [0, 45, -45, 90, -90, 30, -30]
+    if not os.path.exists(input_path):
+        print(f"Pominięto: {input_path} (plik nie istnieje)")
+        continue
 
-for frame in data.get("frames", []):
-    old_feats = frame.get("features", [])
-    if len(old_feats) >= 48:
-        for angle in angles_to_simulate:
-            new_feats = process_frame(old_feats, rot_angle=angle)
-            new_frames.append({
-                "features": new_feats,
-                "labels": frame["labels"],
-                "frame": frame.get("frame", 0)
-            })
+    print(f"\nPrzetwarzanie {ex.upper()}...")
+    print(f"Ładowanie oryginalnych danych: {input_path}")
+    
+    with open(input_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
 
-data["frames"] = new_frames
-data["totalFrames"] = len(new_frames)
-data["featuresCount"] = 14
+    new_frames = []
+    print("Augmentacja 3D (obroty symulujące kamerę z boku)...")
 
-print(f"Zapisywanie {len(new_frames)} zaugmentowanych klatek...")
-with open(output_path, "w", encoding="utf-8") as f:
-    json.dump(data, f, separators=(",", ":"))
-print("Gotowe!")
+    angles_to_simulate = [0, 45, -45, 90, -90, 30, -30]
+
+    for frame in data.get("frames", []):
+        old_feats = frame.get("features", [])
+        if len(old_feats) >= 48:
+            for angle in angles_to_simulate:
+                new_feats = process_frame(old_feats, rot_angle=angle)
+                new_frames.append({
+                    "features": new_feats,
+                    "labels": frame["labels"],
+                    "frame": frame.get("frame", 0)
+                })
+
+    data["frames"] = new_frames
+    data["totalFrames"] = len(new_frames)
+    data["featuresCount"] = 14
+
+    print(f"Zapisywanie {len(new_frames)} zaugmentowanych klatek do: {output_path}")
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, separators=(",", ":"))
+    
+print("\nGotowe! Zaugmentowano wszystkie dostepne cwiczenia.")
+

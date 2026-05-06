@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react'
+import React, { Suspense, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { useGLTF, PresentationControls, Stage, Html } from '@react-three/drei'
 
@@ -19,6 +19,24 @@ function Model({ onPartClick, selectedCategory }) {
     "Boki_brzucha": "CORE",
     "Brzuch": "CORE"
   };
+
+  // Optymalizacja pamięci: usuwanie geometrii i materiałów przy odmontowaniu
+  useEffect(() => {
+    return () => {
+      if (nodes) {
+        Object.values(nodes).forEach(node => {
+          if (node.geometry) node.geometry.dispose();
+          if (node.material) {
+            if (Array.isArray(node.material)) {
+              node.material.forEach(m => m.dispose());
+            } else {
+              node.material.dispose();
+            }
+          }
+        });
+      }
+    };
+  }, [nodes]);
 
   if (!nodes) return null;
 
