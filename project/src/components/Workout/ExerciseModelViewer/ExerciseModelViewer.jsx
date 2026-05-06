@@ -1,7 +1,7 @@
 import React, { Suspense, useEffect, useRef } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
-import { OrbitControls, ContactShadows } from '@react-three/drei';
+import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 
 const Model = ({ path }) => {
@@ -44,7 +44,7 @@ const ExerciseModelViewer = ({ modelPath }) => {
 
   return (
     <div className="absolute inset-0 w-full h-full">
-      <Canvas camera={{ position: [0, 1, 3.8], fov: 40 }}>
+      <Canvas dpr={[1, 1]} camera={{ position: [0, 1, 3.8], fov: 40 }}>
         {/* Kontrolki obracania */}
         <OrbitControls 
           enableZoom={true} 
@@ -53,24 +53,9 @@ const ExerciseModelViewer = ({ modelPath }) => {
           maxDistance={8} 
         />
         
-        {/* Oświetlenie Ultra Bright */}
-        <ambientLight intensity={2.5} />
-        <pointLight position={[10, 15, 10]} intensity={6.5} />
-        <pointLight position={[-10, 15, -10]} intensity={4.5} />
-        
-        <directionalLight position={[5, 10, 5]} intensity={8.5} />
-        <directionalLight position={[-5, 10, -5]} intensity={5.5} />
-        <directionalLight position={[0, -5, 0]} intensity={4.5} />
-        <directionalLight position={[0, 5, 15]} intensity={5.0} />
-
-        {/* Cień pod modelem */}
-        <ContactShadows 
-          position={[0, -1.2, 0]} 
-          opacity={0.6} 
-          scale={10} 
-          blur={2.5} 
-          far={1.5} 
-        />
+        {/* Oświetlenie Zoptymalizowane dla Mobile */}
+        <ambientLight intensity={3.0} />
+        <directionalLight position={[5, 10, 5]} intensity={8.0} />
         
         <Suspense fallback={null}>
           <Model path={modelPath} />

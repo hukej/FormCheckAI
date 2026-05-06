@@ -82,7 +82,21 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish, exercise
       const localStorePath = `localstorage://${exerciseId}-model`;
       const oldLocalStorePath = 'localstorage://exercise-model';
 
-      // 1. Próba załadowania z Supabase Storage (Najnowszy wspólny model)
+      // 1. Próba załadowania z serwera lokalnego (folder /public/models)
+      try {
+        const checkServer = await fetch(`/models/${modelFilename}`, { method: 'HEAD' });
+        if (checkServer.ok) {
+          const serverLoaded = await mlModelRef.current.load(`/models/${modelFilename}`);
+          if (serverLoaded) {
+            console.log(`✅ Załadowano model ${exerciseId} z serwera`);
+            setIsModelLoaded(true);
+            isModelLoadedRef.current = true;
+            return;
+          }
+        }
+      } catch (e) { /* cicho */ }
+
+      // 2. Próba załadowania z Supabase Storage (Najnowszy wspólny model)
       const storageUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/models/${modelFilename}`;
 
       try {
@@ -100,20 +114,6 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish, exercise
       } catch (e) {
         // Ignorujemy błędy sieciowe przy sprawdzaniu chmury
       }
-
-      // 2. Próba załadowania z serwera lokalnego (folder /public/models)
-      try {
-        const checkServer = await fetch(`/models/${modelFilename}`, { method: 'HEAD' });
-        if (checkServer.ok) {
-          const serverLoaded = await mlModelRef.current.load(`/models/${modelFilename}`);
-          if (serverLoaded) {
-            console.log(`✅ Załadowano model ${exerciseId} z serwera`);
-            setIsModelLoaded(true);
-            isModelLoadedRef.current = true;
-            return;
-          }
-        }
-      } catch (e) { /* cicho */ }
 
       // 3. Sprawdź localstorage (jeśli użytkownik trenował coś u siebie)
       let localLoaded = false;
@@ -576,8 +576,14 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish, exercise
           return;
         }
 
+        const isMobile = window.innerWidth <= 768;
+
         poseRef.current = new window.Pose({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}` });
-        poseRef.current.setOptions({ modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+        poseRef.current.setOptions({ 
+          modelComplexity: isMobile ? 0 : 1, 
+          minDetectionConfidence: 0.5, 
+          minTrackingConfidence: 0.5 
+        });
         poseRef.current.onResults(onResults);
 
         cameraRef.current = new window.Camera(videoRef.current, {
@@ -586,7 +592,8 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish, exercise
               await poseRef.current.send({ image: videoRef.current });
             }
           },
-          width: 1280, height: 720
+          width: isMobile ? 640 : 1280, 
+          height: isMobile ? 480 : 720
         });
 
         console.log("Próba uruchomienia strumienia wideo...");

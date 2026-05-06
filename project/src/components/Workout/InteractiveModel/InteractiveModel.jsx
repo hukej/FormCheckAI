@@ -85,7 +85,7 @@ export default function InteractiveModel({ onSelect, currentCategory }) {
   return (
     <div className="w-full h-full bg-slate-950 overflow-hidden relative">
       <Canvas 
-        dpr={[1, 2]} 
+        dpr={[1, 1.5]} 
         camera={{ fov: 45, position: [0, 0, 5] }}
         style={{ touchAction: 'none' }} 
         // onPointerMissed odpala się, gdy klikniesz w tło (poza modelem)

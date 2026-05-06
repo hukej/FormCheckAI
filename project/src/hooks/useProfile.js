@@ -113,24 +113,24 @@ export const useProfile = (isGuest) => {
     initSystem();
   }, [isGuest, runDiagnostics]);
 
-  const saveProfileData = async () => {
+  const saveProfileData = async (dataToSave = formData) => {
     if (isGuest) return;
     setSaveState('saving');
     
-    const parsedAge = parseInt(formData.age);
-    const parsedWeight = parseFloat(formData.weight);
-    const parsedHeight = parseFloat(formData.height);
+    const parsedAge = parseInt(dataToSave.age);
+    const parsedWeight = parseFloat(dataToSave.weight);
+    const parsedHeight = parseFloat(dataToSave.height);
 
     const cleanData = {
-      ...formData,
+      ...dataToSave,
       age: (!isNaN(parsedAge) ? Math.max(1, parsedAge) : 0).toString(),
       weight: (!isNaN(parsedWeight) ? Math.max(1, parsedWeight) : 0).toString(),
       height: (!isNaN(parsedHeight) ? Math.max(1, parsedHeight) : 0).toString(),
       measurements: {
-        chest: formData.measurements.chest ? (parseFloat(formData.measurements.chest) || 0).toString() : '',
-        arm: formData.measurements.arm ? (parseFloat(formData.measurements.arm) || 0).toString() : '',
-        waist: formData.measurements.waist ? (parseFloat(formData.measurements.waist) || 0).toString() : '',
-        thigh: formData.measurements.thigh ? (parseFloat(formData.measurements.thigh) || 0).toString() : '',
+        chest: dataToSave.measurements?.chest ? (parseFloat(dataToSave.measurements.chest) || 0).toString() : '',
+        arm: dataToSave.measurements?.arm ? (parseFloat(dataToSave.measurements.arm) || 0).toString() : '',
+        waist: dataToSave.measurements?.waist ? (parseFloat(dataToSave.measurements.waist) || 0).toString() : '',
+        thigh: dataToSave.measurements?.thigh ? (parseFloat(dataToSave.measurements.thigh) || 0).toString() : '',
       }
     };
 
@@ -149,12 +149,6 @@ export const useProfile = (isGuest) => {
     }
   };
 
-  const toggleDay = (day) => {
-    if (isGuest) return;
-    const days = formData.trainingDays.includes(day) ? formData.trainingDays.filter(d => d !== day) : [...formData.trainingDays, day];
-    setFormData({...formData, trainingDays: days});
-  };
-
   return {
     user,
     loading,
@@ -162,7 +156,6 @@ export const useProfile = (isGuest) => {
     setFormData,
     stats,
     saveState,
-    saveProfileData,
-    toggleDay
+    saveProfileData
   };
 };

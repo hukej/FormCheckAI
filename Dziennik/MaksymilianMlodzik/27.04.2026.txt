@@ -1,0 +1,1 @@
+naprawienie modelu i trenowanie go

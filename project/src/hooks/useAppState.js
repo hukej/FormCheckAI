@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 
 export const useAppState = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
   const [muscleFilter, setMuscleFilter] = useState('Wszystkie');
   const [selectedEx, setSelectedEx] = useState({ name: "Przysiady Klasyczne", id: "001", category: "Nogi", exerciseId: "squat" });

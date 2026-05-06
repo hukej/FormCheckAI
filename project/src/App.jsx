@@ -1,12 +1,12 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import "@tensorflow/tfjs-backend-webgl";
-import { Play, Square, BrainCircuit, Loader2 } from 'lucide-react';
+import { Play, Square, Loader2 } from 'lucide-react';
 
 // Custom Hooks
 import { useAppState } from './hooks';
 
-// Layout Components (Static as they are small and always visible)
+// Layout Components
 import { Sidebar, Header, AchievementsPanel } from './components/Layout';
 
 // Lazy loaded heavy components
@@ -51,7 +51,7 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest, session }) {
 
   return (
     <div className="h-[100dvh] w-screen bg-slate-950 text-blue-100 flex overflow-hidden relative font-sans">
-      
+
       {/* 1. Sidebar Navigation */}
       {currentPath !== 'home' && (
         <div className="relative z-[1000]">
@@ -67,7 +67,7 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest, session }) {
         </div>
       )}
 
-      {/* 2. Main Application Content Area */}
+      {/* 2. Main Content Area */}
       <main className={`flex-grow min-w-0 flex flex-col overflow-y-auto relative text-blue-100 
         ${currentPath === 'home' || isWorkoutView ? 'p-0' : 'p-4 md:p-8'}`}>
 
@@ -78,7 +78,7 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest, session }) {
           />
         )}
 
-        <div className="flex-grow flex flex-col min-h-0">
+        <div className="flex-grow flex flex-col min-h-0 relative">
           <Suspense fallback={<LoadingView />}>
             <Routes>
               <Route path="home" element={
@@ -117,63 +117,18 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest, session }) {
               } />
 
               <Route path="workout" element={
-                <div className="fixed inset-0 z-[120] bg-black p-0 m-0 w-screen h-screen">
-                  <div className="w-full h-full relative">
-                    <CameraView
-                      isActive={active}
-                      isGuest={isGuest}
-                      onWorkoutFinish={(reps, vid, debug) => {
-                        handleWorkoutFinish(reps, vid, debug);
-                        navigate('/app/feedback');
-                      }}
-                      selectedEx={selectedEx}
-                    />
+                <div className="relative h-full w-full">
+                  <CameraView active={active} exercise={selectedEx} onFinish={handleWorkoutFinish} />
 
-                    {/* MINI MODEL OVERLAY */}
-                    <div className="absolute bottom-[170px] md:bottom-28 left-6 w-[220px] h-[165px] md:w-[320px] md:h-[240px] bg-slate-900/40 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden z-[140]">
-                      <div className="absolute top-4 left-5 z-10 flex items-center gap-2 pointer-events-none">
-                        <div className="bg-sky-500 p-1 rounded-lg">
-                          <BrainCircuit size={12} className="text-slate-950" />
-                        </div>
-                        <p className="text-[9px] font-black uppercase text-white tracking-[0.15em] drop-shadow-md">
-                          {selectedEx?.name}
-                        </p>
-                      </div>
-
-                      {selectedEx?.modelPath ? (
-                        <ExerciseModelViewer modelPath={selectedEx.modelPath} />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center p-6 text-center bg-slate-950/20">
-                          <p className="text-[8px] text-slate-400 uppercase font-bold tracking-widest leading-relaxed">
-                            Brak modelu 3D
-                          </p>
-                        </div>
-                      )}
+                  {/* MINI MODEL OVERLAY */}
+                  <div className="absolute bottom-[110px] md:bottom-28 left-4 w-[150px] h-[165px] md:w-[320px] md:h-[240px] bg-slate-900/40 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden z-[140] animate-in slide-in-from-left-5 duration-700">
+                    <div className="absolute top-4 left-5 z-10 flex items-center gap-2 pointer-events-none">
+                      <div className="bg-sky-500 p-1 rounded-lg" />
+                      <p className="text-[7px] font-black uppercase text-white tracking-[0.15em] drop-shadow-md">
+                        {selectedEx?.name}
+                      </p>
                     </div>
-                  </div>
-
-                  {/* UI Controls */}
-                  <div className="bg-slate-900/95 backdrop-blur-xl h-[150px] md:h-[85px] flex flex-col justify-center md:grid md:grid-cols-3 items-center px-8 md:px-12 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] border-t border-white/5 fixed bottom-0 left-0 w-full z-[150]">
-                    <div className="hidden md:block" />
-                    <div className="flex flex-col items-center justify-center text-center col-span-3 md:col-span-1 mb-4 md:mb-0">
-                      <div className="flex items-center gap-3 mb-1.5">
-                        <div className={`h-3 w-3 rounded-full ${active ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">{active ? 'Analiza AI Aktywna' : 'Status: Gotowość'}</p>
-                      </div>
-                      <p className="text-[12px] text-white font-black uppercase tracking-wider italic">{active ? 'Monitorowanie postawy...' : 'Ustaw się przed kamerą'}</p>
-                    </div>
-                    <div className="flex justify-center md:justify-end w-full md:w-auto">
-                      <button
-                        onClick={() => setActive(!active)}
-                        className={`flex items-center gap-4 px-10 h-[54px] rounded-2xl border transition-all duration-500 font-black uppercase tracking-[0.25em] text-[11px] ${active
-                          ? 'bg-red-500 border-red-400 text-white shadow-[0_0_30px_rgba(239,68,68,0.4)]'
-                          : 'bg-sky-500 border-sky-400 text-slate-950 shadow-[0_0_30px_rgba(14,165,233,0.4)] hover:scale-105'
-                          }`}
-                      >
-                        {active ? <Square size={16} fill="white" /> : <Play size={16} fill="black" />}
-                        <span>{active ? 'Zakończ' : 'Rozpocznij'}</span>
-                      </button>
-                    </div>
+                    <ExerciseModelViewer exerciseId={selectedEx?.id} />
                   </div>
                 </div>
               } />
@@ -208,6 +163,36 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest, session }) {
             </Routes>
           </Suspense>
         </div>
+
+        {/* AI Control Panel */}
+        {isWorkoutView && (
+          <div className="bg-slate-900/95 backdrop-blur-xl h-[90px] md:h-[85px] flex items-center justify-between px-6 md:px-12 fixed bottom-0 left-0 w-full z-[150]">
+            <div className="hidden md:block" />
+            <div className="flex flex-col items-start md:items-center justify-center text-left md:text-center">
+              <div className="flex items-center gap-3 mb-1.5">
+                <div className={`h-3 w-3 rounded-full ${active ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">
+                  {active ? 'Analiza AI Aktywna' : 'Status: Gotowość'}
+                </p>
+              </div>
+              <p className="text-[12px] text-white font-black uppercase tracking-wider italic">
+                {active ? 'Monitorowanie postawy...' : 'Ustaw się przed kamerą'}
+              </p>
+            </div>
+            <div className="flex justify-end w-auto">
+              <button
+                onClick={() => setActive(!active)}
+                className={`flex items-center gap-4 px-10 h-[54px] rounded-2xl border transition-all duration-500 font-black uppercase tracking-[0.25em] text-[11px] ${active
+                  ? 'bg-red-500 border-red-400 text-white shadow-[0_0_30px_rgba(239,68,68,0.4)]'
+                  : 'bg-sky-500 border-sky-400 text-slate-950 shadow-[0_0_30px_rgba(14,165,233,0.4)] hover:scale-105'
+                  }`}
+              >
+                {active ? <Square size={16} fill="white" /> : <Play size={16} fill="black" />}
+                <span>{active ? 'Zakończ' : 'Rozpocznij'}</span>
+              </button>
+            </div>
+          </div>
+        )}
       </main>
 
       <AchievementsPanel

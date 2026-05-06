@@ -15,25 +15,7 @@ const Nav = ({ onLaunch, onDemo, session }) => (
         <span className="font-black tracking-tighter text-xl italic text-white uppercase">FORMCHECK<span className="text-sky-400">AI</span></span>
       </div>
       <div className="flex items-center gap-3 md:gap-6 text-[10px] font-black tracking-[0.2em] uppercase text-slate-400">
-        <a href="#demo" className="hidden lg:block hover:text-sky-400 transition-colors">Zobacz Demo</a>
-        <a href="#disclaimer" className="hidden lg:block hover:text-sky-400 transition-colors">Ważne info</a>
-        <button 
-          onClick={onDemo} 
-          className="hidden md:block text-white border border-slate-700 px-4 py-2 rounded-xl hover:bg-slate-800 transition-all uppercase font-black"
-        >
-          Otwórz Demo
-        </button>
-        <button 
-          onClick={onLaunch} 
-          className="bg-sky-500 text-slate-950 px-4 py-2 md:px-5 md:py-2 rounded-xl font-black hover:bg-sky-400 hover:shadow-[0_0_20px_rgba(14,165,233,0.4)] transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap"
-        >
-          {session ? (
-            <span className="hidden sm:inline">Panel AI</span>
-          ) : (
-            <span>Zaloguj się</span>
-          )}
-          {session && <ChevronRight size={14} className="sm:hidden" />}
-        </button>
+        <a href="#disclaimer" className="hidden lg:block hover:text-sky-400 transition-colors">Ważne informacje</a>
       </div>
     </div>
   </nav>
@@ -216,6 +198,7 @@ const Footer = () => (
         </div>
       </div>
     </div>
+
   </footer>
 );
 
@@ -238,32 +221,9 @@ const LandingPage = ({ onLaunch, onDemo, session }) => {
           ))}
         </motion.div>
       </div>
-
       <DemoSection />
-      <Disclaimer />
       <BentoGrid />
-
-      <section className="py-72 relative flex items-center justify-center overflow-hidden bg-slate-950">
-        <div className="absolute inset-0 bg-sky-500/10 backdrop-blur-3xl flex items-center justify-center">
-          <motion.div 
-            animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
-            transition={{ duration: 8, repeat: Infinity }}
-            className="w-[800px] h-[800px] bg-sky-500/20 rounded-full blur-[120px]" 
-          />
-        </div>
-        <div className="relative z-10 text-center px-6">
-          <h2 className="text-6xl md:text-9xl font-black uppercase italic tracking-tighter leading-[0.8] mb-16 text-white">
-            Sprawdź formę<br />bez logowania.
-          </h2>
-          <button 
-            onClick={onDemo}
-            className="group bg-sky-500 text-slate-950 text-2xl px-16 py-8 rounded-3xl font-black uppercase italic tracking-widest hover:scale-105 hover:shadow-[0_0_50px_rgba(14,165,233,0.4)] transition-all flex items-center gap-6 mx-auto active:scale-95"
-          >
-            Uruchom Analizę AI <ChevronRight size={32} className="group-hover:translate-x-2 transition-transform" />
-          </button>
-        </div>
-      </section>
-
+      <Disclaimer />
       <Footer />
     </div>
   );
