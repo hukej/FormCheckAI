@@ -119,7 +119,7 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest, session }) {
               } />
 
               <Route path="workout" element={
-                <div className="fixed inset-0 z-[120] bg-black p-0 m-0 w-screen h-screen">
+                <div className="absolute inset-0 z-[120] bg-black p-0 m-0 w-full h-full">
                   <div className="w-full h-full relative">
                     <CameraView
                       isActive={active}
@@ -132,7 +132,7 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest, session }) {
                     />
 
                     {/* MINI MODEL OVERLAY */}
-                    <div className="absolute bottom-[110px] md:bottom-28 left-4 w-[150px] h-[165px] md:w-[320px] md:h-[240px] bg-slate-900/40 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden z-[140] animate-in slide-in-from-left-5 duration-700">
+                    <div className="absolute bottom-[110px] md:bottom-28 left-4 w-[150px] md:w-[320px] h-[165px] md:h-[240px] bg-slate-900/40 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden z-[140] animate-in slide-in-from-left-5 duration-700">
                       <div className="absolute top-4 left-5 z-10 flex items-center gap-2 pointer-events-none">
                         <div className="bg-sky-500 p-1 rounded-lg" />
                         <p className="text-[7px] font-black uppercase text-white tracking-[0.15em] drop-shadow-md">

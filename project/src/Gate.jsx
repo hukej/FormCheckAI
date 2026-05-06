@@ -15,7 +15,6 @@ export default function Gate() {
   };
 
   const handleGoToLogin = () => {
-    setIsGuest(false);
     navigate('/auth');
   };
 
