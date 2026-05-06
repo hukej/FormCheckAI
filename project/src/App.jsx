@@ -83,6 +83,8 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest, session }) {
             <Routes>
               <Route path="home" element={
                 <HomeView
+                  isGuest={isGuest}
+                  onLogin={onGoToLogin}
                   userName={session?.user?.user_metadata?.full_name || session?.user?.email?.split('@')[0]}
                   onSelectCategory={(cat) => {
                     setMuscleFilter(cat);

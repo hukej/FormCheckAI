@@ -3,7 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { PresentationControls, Stage, Html, Float } from '@react-three/drei';
 import { Suspense } from 'react';
 import { useGLTF } from '@react-three/drei';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, User } from 'lucide-react';
 
 // Prosty hook do wykrywania mobile (< 768px)
 function useIsMobile() {
@@ -95,7 +95,7 @@ const Hotspot = ({ position, label, onClick, isMobile }) => (
   </Html>
 );
 
-const HomeView = ({ onSelectCategory }) => {
+const HomeView = ({ onSelectCategory, isGuest, onLogin, userName }) => {
   const isMobile = useIsMobile();
 
   return (
@@ -105,10 +105,18 @@ const HomeView = ({ onSelectCategory }) => {
       <div className="absolute bottom-1/4 -right-20 w-[400px] h-[400px] sm:w-[800px] sm:h-[800px] bg-indigo-600/5 blur-[120px] sm:blur-[180px] rounded-full pointer-events-none animate-pulse" style={{ animationDelay: '2s' }} />
 
       {/* Top Left: Witaj */}
-      <div className="absolute top-4 left-4 sm:top-12 sm:left-12 z-[60] pointer-events-none opacity-0 animate-fade-in-left" style={{ animationFillMode: 'forwards' }}>
+      <div className="absolute top-4 left-4 sm:top-12 sm:left-12 z-[60] flex flex-col items-start gap-2 pointer-events-none opacity-0 animate-fade-in-left" style={{ animationFillMode: 'forwards' }}>
         <h1 className="text-4xl sm:text-6xl md:text-9xl font-black text-slate-400 uppercase italic tracking-tighter leading-none">
-          Witaj
+          {isGuest ? "Witaj!" : `Witaj, ${userName || 'User'}`}
         </h1>
+        {isGuest && (
+          <button 
+            onClick={onLogin}
+            className="pointer-events-auto mt-4 bg-sky-500 text-slate-950 px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-[0_0_20px_rgba(14,165,233,0.3)] hover:scale-105 transition-all active:scale-95 flex items-center gap-2"
+          >
+            <User size={14} /> Zaloguj się
+          </button>
+        )}
       </div>
 
       {/* Middle Right: Co dzisiaj Trenujemy? — na mobile w prawym górnym rogu pod "Witaj" */}
