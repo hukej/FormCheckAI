@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import "@tensorflow/tfjs-backend-webgl";
 import { Play, Square, Loader2 } from 'lucide-react';
+import { supabase } from './supabaseClient';
 
 // Custom Hooks
 import { useAppState } from './hooks';
@@ -48,6 +49,23 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest, session }) {
   } = useAppState();
 
   const isWorkoutView = location.pathname.includes('/workout');
+  const [profileName, setProfileName] = React.useState("");
+
+  React.useEffect(() => {
+    const fetchProfileName = async () => {
+      if (session?.user?.id && !isGuest) {
+        const { data: profile } = await supabase.from('profiles').select('payload').eq('id', session.user.id).single();
+        if (profile?.payload?.firstName) {
+          setProfileName(profile.payload.firstName);
+        } else {
+          setProfileName("");
+        }
+      } else {
+        setProfileName("");
+      }
+    };
+    fetchProfileName();
+  }, [session, isGuest]);
 
   return (
     <div className="h-[100dvh] w-screen bg-slate-950 text-blue-100 flex overflow-hidden relative font-sans">
@@ -85,7 +103,7 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest, session }) {
                 <HomeView
                   isGuest={isGuest}
                   onLogin={onGoToLogin}
-                  userName={session?.user?.user_metadata?.full_name || session?.user?.email?.split('@')[0]}
+                  userName={profileName}
                   onSelectCategory={(cat) => {
                     setMuscleFilter(cat);
                     navigate('/app/exercises');

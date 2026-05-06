@@ -107,7 +107,7 @@ const HomeView = ({ onSelectCategory, isGuest, onLogin, userName }) => {
       {/* Top Left: Witaj */}
       <div className="absolute top-4 left-4 sm:top-12 sm:left-12 z-[60] flex flex-col items-start gap-2 pointer-events-none opacity-0 animate-fade-in-left" style={{ animationFillMode: 'forwards' }}>
         <h1 className="text-4xl sm:text-6xl md:text-9xl font-black text-slate-400 uppercase italic tracking-tighter leading-none">
-          {isGuest ? "Witaj!" : `Witaj, ${userName || 'User'}`}
+          {isGuest ? "Witaj!" : userName ? `Witaj, ${userName}` : "Witaj"}
         </h1>
         {isGuest && (
           <button 
