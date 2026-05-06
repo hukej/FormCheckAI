@@ -12,12 +12,12 @@ const filteredActivities = (!filter || filter === 'Wszystkie')
     <div className="h-full flex flex-col p-6 overflow-hidden">
 
       {/* Category Selector */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide shrink-0">
         {categories.map((cat) => (
           <button
             key={cat}
             onClick={() => setFilter(cat)}
-            className={`px-6 py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap
+            className={`px-6 py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap shrink-0
               ${filter === cat 
                 ? 'bg-sky-500 border-sky-400 text-slate-950 shadow-[0_5px_15px_rgba(14,165,233,0.3)]' 
                 : 'bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-700 hover:text-slate-300'}
@@ -37,7 +37,7 @@ const filteredActivities = (!filter || filter === 'Wszystkie')
             <div
               key={activity.id}
               onClick={() => !isLocked && onSelectActivity(activity)}
-              className={`group relative flex flex-col justify-between p-6 rounded-[2rem] border transition-all overflow-hidden h-fit min-h-[160px] ${isLocked ? 'bg-slate-900/10 border-slate-900 cursor-not-allowed opacity-40' : 'bg-slate-900/30 border-slate-800/50 hover:border-sky-500/50 hover:bg-slate-900/60 cursor-pointer shadow-xl'}`}
+              className={`group relative flex flex-col justify-between p-6 rounded-[2rem] border transition-all overflow-hidden h-[180px] shrink-0 ${isLocked ? 'bg-slate-900/10 border-slate-900 cursor-not-allowed opacity-40' : 'bg-slate-900/30 border-slate-800/50 hover:border-sky-500/50 hover:bg-slate-900/60 cursor-pointer shadow-xl'}`}
             >
               {/* Background Glow (only for active) */}
               {!isLocked && <div className="absolute -top-12 -right-12 w-24 h-24 bg-sky-500/10 blur-3xl rounded-full group-hover:bg-sky-500/20 transition-all" />}
