@@ -92,8 +92,8 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest, session }) {
               } />
 
               <Route path="exercises" element={
-                <div className="h-full xl:grid xl:grid-cols-2 gap-6 min-h-0">
-                  <section className="flex flex-col gap-4 min-h-[400px] order-2 xl:order-1 relative min-h-0">
+                <div className="h-full flex flex-col xl:grid xl:grid-cols-2 gap-6 min-h-0">
+                  <section className="flex flex-col gap-4 flex-grow order-2 xl:order-1 relative min-h-0">
                     <div className="flex-grow bg-slate-900/40 rounded-[2rem] border border-slate-800 overflow-hidden relative shadow-inner min-h-0">
                       <GymActivitiesList
                         onSelectActivity={(a) => {
@@ -105,7 +105,7 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest, session }) {
                       />
                     </div>
                   </section>
-                  <section className="min-h-[480px] md:min-h-[500px] order-1 xl:order-2">
+                  <section className="shrink-0 h-[35vh] min-h-[250px] md:h-[40vh] md:min-h-[400px] xl:h-auto order-1 xl:order-2">
                     <div className="h-full rounded-[2rem] border border-slate-800 shadow-2xl bg-slate-950 overflow-hidden">
                       <InteractiveModel
                         onSelect={(c) => setMuscleFilter(c.charAt(0).toUpperCase() + c.slice(1).toLowerCase())}
@@ -117,18 +117,37 @@ export default function App({ onGoToLanding, onGoToLogin, isGuest, session }) {
               } />
 
               <Route path="workout" element={
-                <div className="relative h-full w-full">
-                  <CameraView active={active} exercise={selectedEx} onFinish={handleWorkoutFinish} />
+                <div className="fixed inset-0 z-[120] bg-black p-0 m-0 w-screen h-screen">
+                  <div className="w-full h-full relative">
+                    <CameraView
+                      isActive={active}
+                      isGuest={isGuest}
+                      onWorkoutFinish={(reps, vid, debug) => {
+                        handleWorkoutFinish(reps, vid, debug);
+                        navigate('/app/feedback');
+                      }}
+                      selectedEx={selectedEx}
+                    />
 
-                  {/* MINI MODEL OVERLAY */}
-                  <div className="absolute bottom-[110px] md:bottom-28 left-4 w-[150px] h-[165px] md:w-[320px] md:h-[240px] bg-slate-900/40 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden z-[140] animate-in slide-in-from-left-5 duration-700">
-                    <div className="absolute top-4 left-5 z-10 flex items-center gap-2 pointer-events-none">
-                      <div className="bg-sky-500 p-1 rounded-lg" />
-                      <p className="text-[7px] font-black uppercase text-white tracking-[0.15em] drop-shadow-md">
-                        {selectedEx?.name}
-                      </p>
+                    {/* MINI MODEL OVERLAY */}
+                    <div className="absolute bottom-[110px] md:bottom-28 left-4 w-[150px] h-[165px] md:w-[320px] md:h-[240px] bg-slate-900/40 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden z-[140] animate-in slide-in-from-left-5 duration-700">
+                      <div className="absolute top-4 left-5 z-10 flex items-center gap-2 pointer-events-none">
+                        <div className="bg-sky-500 p-1 rounded-lg" />
+                        <p className="text-[7px] font-black uppercase text-white tracking-[0.15em] drop-shadow-md">
+                          {selectedEx?.name}
+                        </p>
+                      </div>
+                      
+                      {selectedEx?.modelPath ? (
+                        <ExerciseModelViewer modelPath={selectedEx.modelPath} />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center p-6 text-center bg-slate-950/20">
+                          <p className="text-[8px] text-slate-400 uppercase font-bold tracking-widest leading-relaxed">
+                            Brak modelu 3D
+                          </p>
+                        </div>
+                      )}
                     </div>
-                    <ExerciseModelViewer exerciseId={selectedEx?.id} />
                   </div>
                 </div>
               } />

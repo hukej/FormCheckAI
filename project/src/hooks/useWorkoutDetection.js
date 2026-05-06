@@ -381,44 +381,49 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish, exercise
             ctx.fillText("(WRÓĆ BOKIEM)", 150, height / 2 + 20);
             ctx.restore();
 
-            // Prosty HUD bez detali kątów, aby interfejs nie migotał
-            ctx.save(); ctx.fillStyle = "rgba(2, 6, 23, 0.9)"; ctx.beginPath(); ctx.roundRect(10, 10, 240, 150, 15); ctx.fill();
-            ctx.fillStyle = "#38bdf8"; ctx.font = "bold 18px monospace"; ctx.fillText(`SQUATS: ${repCountRef.current}`, 25, 35);
-            ctx.font = "11px monospace"; ctx.fillStyle = "#f59e0b"; ctx.fillText(`STATUS: ⚠ POZA POZYCJĄ`, 25, 60);
-            ctx.fillStyle = alertMessage ? "#ef4444" : "#22c55e"; ctx.fillText(`CAM: ${fpsRef.current} FPS`, 25, 120);
-            ctx.restore();
+            // Pominęliśmy rysowanie debug HUD, aby interfejs był czysty
           } else {
             statsRef.current.totalFrames++; statsRef.current.kneeAngles.push(kneeA); statsRef.current.backAngles.push(backT);
 
 
 
-            // --- Analiza Techniki (PURE ML) ---
+            // --- Analiza Techniki (PURE ML + Heurystyka) ---
             const preds = lastPredictionsRef.current;
 
             // Logowanie predykcji do konsoli (ułatwia debugowanie)
-            if (statsRef.current.totalFrames % 30 === 0) {
-              console.log("ML Predictions:", preds);
+            if (statsRef.current.totalFrames % 60 === 0) {
+              // console.log(`ML Predictions for ${exerciseId}:`, preds);
             }
 
-            // Obliczamy czy plecy są za bardzo pochylone (Heurystyka + ML)
-            // Dodajemy wagę dla 3D torso lean, jeśli ML go wykryje
-            let isBackBad = (preds.lean > 0.28 || backT > DETECTION_PARAMS.SQUAT.BACK_LEAN_MAX);
+            let isBackBad = false;
+            let currentIsHeelLifted = false;
+            let currentIsShallow = false;
+            let currentQualityAlert = null;
 
-            // Valgus: Ignorujemy jeśli użytkownik stoi bokiem (zbyt mały hipDist w X), bo detekcja 3D w Z jest mało wiarygodna
-            const hipDistX = Math.abs(lm[11].x - lm[12].x);
-            const isFacingCamera = hipDistX > 0.4;
-            let currentValgus = isFacingCamera ? (preds.valgus > 0.5) : false;
-
-            let currentIsHeelLifted = (preds.heels_up > 0.65) || (activeInitDist && (activeDist > activeInitDist + DETECTION_PARAMS.SQUAT.HEEL_LIFT_SENSITIVITY));
-
-            let currentIsShallow = preds.shallow > 0.35;
+            if (exerciseId === 'squat') {
+              isBackBad = (preds.lean > 0.28 || backT > DETECTION_PARAMS.SQUAT.BACK_LEAN_MAX);
+              currentIsHeelLifted = (preds.heels_up > 0.65) || (activeInitDist && (activeDist > activeInitDist + DETECTION_PARAMS.SQUAT.HEEL_LIFT_SENSITIVITY));
+              currentIsShallow = preds.shallow > 0.35;
+              const hipDistX = Math.abs(lm[11].x - lm[12].x);
+              if ((hipDistX > 0.4) && preds.valgus > 0.5) currentQualityAlert = "KOLANA DO ŚRODKA!";
+            } else if (exerciseId === 'pushup') {
+              isBackBad = preds.poor_back > 0.4;
+              currentIsShallow = preds.shallow > 0.35;
+              if (preds.wide_elbows > 0.45) currentQualityAlert = "ŁOKCIE BLIŻEJ CIAŁA!";
+            } else if (exerciseId === 'lunge') {
+              isBackBad = preds.poor_back > 0.4;
+              currentIsShallow = preds.shallow > 0.35;
+              if (preds.unstable > 0.45) currentQualityAlert = "UTRZYMAJ RÓWNOWAGĘ!";
+            } else if (exerciseId === 'jumping_jacks') {
+              currentIsShallow = preds.shallow > 0.35;
+              if (preds.arms_too_low > 0.45) currentQualityAlert = "PODNIEŚ WYŻEJ RĘCE!";
+              if (preds.asymmetry > 0.45) currentQualityAlert = "RUCH ASYMETRYCZNY!";
+            }
 
             // Pobierz nową predykcję dla następnej klatki
             if (isModelLoadedRef.current && !mlModelRef.current.isTraining) {
               mlModelRef.current.predict(worldLm).then(p => {
-                if (p) {
-                  lastPredictionsRef.current = p;
-                }
+                if (p) lastPredictionsRef.current = p;
               }).catch((e) => { console.error("ML Predict Error:", e); });
             } else if (!mlModelRef.current.isTraining) {
               // Rezerwowy endpoint serwerowy
@@ -435,8 +440,9 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish, exercise
 
             setIsBackPoor(isBackBad && isActivePhase);
             setIsHeelLifted(currentIsHeelLifted);
+            setQualityAlert(currentQualityAlert);
 
-            if (isActivePhase && exerciseId === 'squat') {
+            if (isActivePhase) {
               if (isBackBad) {
                 statsRef.current.poorBackFrames++;
                 speak("Wyprostuj plecy", "back_error", 6000);
@@ -444,6 +450,9 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish, exercise
               if (currentIsHeelLifted) {
                 statsRef.current.heelLiftFrames++;
                 speak("Przyklej pięty", "heel_error", 5000);
+              }
+              if (currentQualityAlert) {
+                speak(currentQualityAlert.toLowerCase(), "quality_error", 5000);
               }
             }
 
@@ -457,16 +466,7 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish, exercise
             let bColor = isBackBad ? "#ef4444" : "#22c55e";
             let bStat = isBackBad ? "POOR" : "STABLE";
 
-            ctx.font = "bold 14px monospace"; ctx.shadowBlur = 4; ctx.shadowColor = "black";
-            if (exerciseId === 'pushup') {
-              ctx.fillStyle = isDeep ? "#22c55e" : "#f59e0b"; ctx.fillText(`${elbowA}° ELBOW`, lm[sIdx.e].x * width + 15, lm[sIdx.e].y * height);
-            } else if (exerciseId === 'jumping_jacks') {
-              ctx.fillStyle = isDeep ? "#22c55e" : "#f59e0b"; ctx.fillText(`${jackArmA}° ARMS`, lm[sIdx.w].x * width + 15, lm[sIdx.w].y * height);
-            } else {
-              ctx.fillStyle = isDeep ? "#22c55e" : "#f59e0b"; ctx.fillText(`${kneeA}° DEPTH`, lm[sIdx.k].x * width + 15, lm[sIdx.k].y * height);
-            }
-            ctx.fillStyle = bColor; ctx.fillText(`${backT}° BACK`, lm[sIdx.h].x * width + 15, lm[sIdx.h].y * height);
-
+            // Usunięto tekstowe debugowanie kątów nad stawami
             if (currentIsHeelLifted) { ctx.beginPath(); ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 5; ctx.moveTo(lm[sIdx.heel].x * width - 20, lm[sIdx.heel].y * height + 5); ctx.lineTo(lm[sIdx.heel].x * width + 20, lm[sIdx.heel].y * height + 5); ctx.stroke(); }
 
             // --- Liczenie powtórzeń (Dynamiczna Maszyna Stanów) ---
@@ -547,19 +547,7 @@ export const useWorkoutDetection = (isActive, isGuest, onWorkoutFinish, exercise
               }
             }
 
-            const exerciseName = exerciseId.toUpperCase().replace('_', ' ');
-            ctx.save(); ctx.fillStyle = "rgba(2, 6, 23, 0.9)"; ctx.beginPath(); ctx.roundRect(10, 10, 240, exerciseId === 'squat' ? 150 : 80, 15); ctx.fill();
-            ctx.fillStyle = "#38bdf8"; ctx.font = "bold 18px monospace"; ctx.fillText(`${exerciseName}: ${repCountRef.current}`, 25, 35);
-            if (exerciseId === 'squat') {
-              ctx.font = "11px monospace"; ctx.fillStyle = isDeep ? "#22c55e" : "#f59e0b"; ctx.fillText(`DEPTH: ${isDeep ? '✓ PERFECT' : '⚠ GO LOWER'}`, 25, 60);
-              ctx.fillStyle = bColor; ctx.fillText(`BACK: ${bStat}`, 25, 80);
-              ctx.fillStyle = currentIsHeelLifted ? "#ef4444" : "#22c55e"; ctx.fillText(`FEET: ${currentIsHeelLifted ? '⚠ HEELS UP!' : '✓ GROUNDED'}`, 25, 100);
-            }
-            ctx.fillStyle = alertMessage ? "#ef4444" : "#22c55e"; ctx.fillText(`CAM: ${fpsRef.current} FPS`, 25, exerciseId === 'squat' ? 120 : 60);
-            if (exerciseId === 'squat') {
-              ctx.fillStyle = isModelLoaded ? "#a855f7" : "#64748b"; ctx.fillText(`AI MODEL: ${isModelLoaded ? 'ACTIVE' : 'HEURISTICS'}`, 25, 140);
-            }
-            ctx.restore();
+            // Usunięto boczny panel debugowania (FPS, AI Status)
           }
         }
         if (window.drawConnectors) window.drawConnectors(ctx, lm, window.POSE_CONNECTIONS, { color: stage === 'active' ? "rgba(56, 189, 248, 0.5)" : "rgba(255, 255, 255, 0.1)", lineWidth: 2 });

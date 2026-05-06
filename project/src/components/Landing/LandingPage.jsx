@@ -14,8 +14,14 @@ const Nav = ({ onLaunch, onDemo, session }) => (
         </div>
         <span className="font-black tracking-tighter text-xl italic text-white uppercase">FORMCHECK<span className="text-sky-400">AI</span></span>
       </div>
-      <div className="flex items-center gap-3 md:gap-6 text-[10px] font-black tracking-[0.2em] uppercase text-slate-400">
+      <div className="flex items-center gap-4 md:gap-6 text-[10px] font-black tracking-[0.2em] uppercase text-slate-400">
         <a href="#disclaimer" className="hidden lg:block hover:text-sky-400 transition-colors">Ważne informacje</a>
+        <button 
+          onClick={onLaunch}
+          className="bg-sky-500/10 text-sky-400 hover:bg-sky-500 hover:text-slate-950 px-4 py-2 rounded-xl transition-all font-black border border-sky-500/20 hover:border-sky-500"
+        >
+          {session ? 'Aplikacja' : 'Zaloguj się'}
+        </button>
       </div>
     </div>
   </nav>
@@ -128,9 +134,19 @@ const Hero = ({ onDemo, session, onLaunch }) => {
           >
             {session ? 'Przejdź do aplikacji' : 'Uruchom Demo'} {session ? <ChevronRight size={18} /> : <Play size={18} fill="currentColor" />}
           </button>
-          <a href="#demo" className="text-white font-black text-xs uppercase tracking-[0.2em] border-b-2 border-sky-500/30 pb-1 hover:border-sky-500 transition-all italic">
-            Zobacz przykład
-          </a>
+          {!session && (
+            <button 
+              onClick={onLaunch}
+              className="text-white font-black text-xs uppercase tracking-[0.2em] border-b-2 border-sky-500/30 pb-1 hover:border-sky-500 transition-all italic"
+            >
+              Zaloguj się
+            </button>
+          )}
+          {session && (
+            <a href="#demo" className="text-white font-black text-xs uppercase tracking-[0.2em] border-b-2 border-sky-500/30 pb-1 hover:border-sky-500 transition-all italic">
+              Zobacz przykład
+            </a>
+          )}
         </div>
       </div>
     </section>
